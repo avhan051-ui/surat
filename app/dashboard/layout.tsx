@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
@@ -11,14 +11,64 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const notificationsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, setCurrentUser } = useAppContext();
+  const { currentUser, setCurrentUser, surat } = useAppContext();
 
   // Close sidebar when route changes (for mobile)
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Initialize notifications
+  useEffect(() => {
+    // Sample notifications - in a real app, these would come from an API
+    const sampleNotifications = [
+      {
+        id: 1,
+        title: 'Surat Baru Dibuat',
+        message: 'Surat dengan nomor 500.6.1.1/005/2025 telah berhasil dibuat',
+        time: '5 menit yang lalu',
+        read: false,
+        type: 'success'
+      },
+      {
+        id: 2,
+        title: 'Laporan Bulanan',
+        message: 'Laporan bulanan Januari 2025 siap untuk diunduh',
+        time: '1 jam yang lalu',
+        read: false,
+        type: 'info'
+      },
+      {
+        id: 3,
+        title: 'Pengingat',
+        message: 'Ada 3 surat yang perlu ditindaklanjuti',
+        time: '2 jam yang lalu',
+        read: true,
+        type: 'warning'
+      }
+    ];
+    
+    setNotifications(sampleNotifications);
+  }, []);
 
   const handleLogout = () => {
     if (confirm('Apakah Anda yakin ingin keluar?')) {
@@ -28,6 +78,18 @@ export default function DashboardLayout({
       router.push('/login');
     }
   };
+
+  const markAsRead = (id: number) => {
+    setNotifications(notifications.map(notification => 
+      notification.id === id ? { ...notification, read: true } : notification
+    ));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(notification => ({ ...notification, read: true })));
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const menuItems = [
     {
@@ -85,9 +147,7 @@ export default function DashboardLayout({
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <div 
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white/95 backdrop-blur-sm shadow-2xl border-r border-slate-200/50 transform transition-all duration-300 ease-in-out md:translate-x-0 md:inset-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white/95 backdrop-blur-sm shadow-2xl border-r border-slate-200/50 transform transition-all duration-300 ease-in-out md:translate-x-0 md:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center justify-center h-24 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent"></div>
@@ -183,14 +243,86 @@ export default function DashboardLayout({
                 </p>
               </div>
               <div className="flex items-center space-x-6">
-                <div className="relative">
-                  <button className="bg-slate-100 hover:bg-slate-200 p-3 rounded-xl transition-all duration-200 shadow-sm">
+                {/* Notification Bell */}
+                <div className="relative" ref={notificationsRef}>
+                  <button 
+                    onClick={() => setNotificationsOpen(!notificationsOpen)}
+                    className="bg-slate-100 hover:bg-slate-200 p-3 rounded-xl transition-all duration-200 shadow-sm relative"
+                  >
                     <i className="fas fa-bell text-slate-600"></i>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-semibold shadow-lg">
+                        {unreadCount}
+                      </span>
+                    )}
                   </button>
-                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-semibold shadow-lg">
-                    3
-                  </span>
+                  
+                  {/* Notifications Dropdown */}
+                  {notificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-slate-200/50 z-50">
+                      <div className="p-4 border-b border-slate-200/50">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-bold text-slate-800">Notifikasi</h3>
+                          {unreadCount > 0 && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAllAsRead();
+                              }}
+                              className="text-sm text-blue-600 hover:text-blue-800"
+                            >
+                              Tandai semua dibaca
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="max-h-96 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          notifications.map((notification) => (
+                            <div 
+                              key={notification.id}
+                              className={`p-4 border-b border-slate-200/50 hover:bg-slate-50 cursor-pointer ${
+                                !notification.read ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className={`w-3 h-3 rounded-full mt-2 ${
+                                  notification.type === 'success' ? 'bg-green-500' :
+                                  notification.type === 'warning' ? 'bg-yellow-500' :
+                                  'bg-blue-500'
+                                }`}></div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-slate-800">{notification.title}</h4>
+                                  <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
+                                  <p className="text-xs text-slate-400 mt-2">{notification.time}</p>
+                                </div>
+                                {!notification.read && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-8 text-center">
+                            <div className="bg-slate-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                              <i className="fas fa-bell-slash text-slate-400 text-2xl"></i>
+                            </div>
+                            <p className="text-slate-600">Tidak ada notifikasi</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-3 text-center border-t border-slate-200/50">
+                        <button className="text-sm text-blue-600 hover:text-blue-800">
+                          Lihat semua notifikasi
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+                
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-semibold text-slate-800">{currentUser?.nama || 'User'}</p>
                   <p className="text-xs text-slate-500 font-medium">{currentUser?.role || 'Pengguna'}</p>
