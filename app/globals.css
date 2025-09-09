@@ -8,8 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +21,33 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Custom styles for the application */
+.sidebar-menu-item.active {
+  background: linear-gradient(to right, #dbeafe, #e0e7ff);
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.sidebar-menu-item:hover {
+  background: linear-gradient(to right, #dbeafe, #e0e7ff);
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .sidebar-menu-item.active {
+    background: linear-gradient(to right, #1e3a8a, #312e81);
+    color: #93c5fd;
+    border: 1px solid #1d4ed8;
+  }
+  
+  .sidebar-menu-item:hover {
+    background: linear-gradient(to right, #1e3a8a, #312e81);
+    color: #93c5fd;
+    border: 1px solid #1d4ed8;
+  }
 }

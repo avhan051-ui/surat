@@ -1,0 +1,3468 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SuratKu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#64748b',
+                        accent: '#f59e0b',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        info: '#3b82f6'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 font-sans min-h-screen">
+    <!-- Login Section -->
+    <div id="loginSection" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-center">
+                <div class="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-envelope-open-text text-white text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">SuratKu</h1>
+                <p class="text-blue-100 mt-2">Sistem Pengelolaan Surat Keluar</p>
+            </div>
+            
+            <div class="p-8">
+                <h2 class="text-2xl font-bold text-gray-800 text-center mb-2">Login ke Akun Anda</h2>
+                <p class="text-gray-600 text-center mb-8">Masukkan NIP dan password untuk melanjutkan</p>
+                
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">NIP</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-id-card text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="text" 
+                                id="nipInput" 
+                                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                placeholder="Masukkan NIP Anda" 
+                                required
+                                maxlength="18">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="password" 
+                                id="passwordInput" 
+                                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                placeholder="Masukkan password" 
+                                required>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input 
+                                id="rememberMe" 
+                                type="checkbox" 
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="rememberMe" class="ml-2 block text-sm text-gray-700">
+                                Ingat saya
+                            </label>
+                        </div>
+                        
+                        <div class="text-sm">
+                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
+                                Lupa password?
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg transition-all duration-200 font-medium">
+                        Masuk ke Dashboard
+                    </button>
+                </form>
+                
+                <div class="mt-8 text-center">
+                    <p class="text-gray-600 text-sm">
+                        Belum memiliki akun? 
+                        <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
+                            Hubungi administrator
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white/95 backdrop-blur-sm shadow-2xl border-r border-slate-200/50 transform -translate-x-full transition-all duration-300 ease-in-out md:translate-x-0 md:inset-0 hidden">
+        <div class="flex items-center justify-center h-24 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent"></div>
+            <div class="flex items-center space-x-4 relative z-10">
+                <div class="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-envelope-open-text text-blue-600 text-xl"></i>
+                </div>
+                <div class="text-white">
+                    <h1 class="text-xl font-bold tracking-tight">SuratKu</h1>
+                    <p class="text-sm text-blue-100 font-medium">Admin Dashboard</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="mt-8 px-4">
+            <div class="space-y-2">
+                <a href="#" id="menuDashboard" class="sidebar-menu-item active group flex items-center px-4 py-3.5 text-slate-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 transition-all duration-200 border border-transparent hover:border-blue-100">
+                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3 group-hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-tachometer-alt text-blue-600"></i>
+                    </div>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                <a href="#" id="menuInput" class="sidebar-menu-item group flex items-center px-4 py-3.5 text-slate-700 rounded-xl hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700 transition-all duration-200 border border-transparent hover:border-green-100">
+                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mr-3 group-hover:bg-green-200 transition-colors">
+                        <i class="fas fa-plus-circle text-green-600"></i>
+                    </div>
+                    <span class="font-medium">Input Surat Baru</span>
+                </a>
+                <a href="#" id="menuData" class="sidebar-menu-item group flex items-center px-4 py-3.5 text-slate-700 rounded-xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:text-purple-700 transition-all duration-200 border border-transparent hover:border-purple-100">
+                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mr-3 group-hover:bg-purple-200 transition-colors">
+                        <i class="fas fa-table text-purple-600"></i>
+                    </div>
+                    <span class="font-medium">Data Surat Keluar</span>
+                </a>
+                <a href="#" id="menuLaporan" class="sidebar-menu-item group flex items-center px-4 py-3.5 text-slate-700 rounded-xl hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 hover:text-orange-700 transition-all duration-200 border border-transparent hover:border-orange-100">
+                    <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mr-3 group-hover:bg-orange-200 transition-colors">
+                        <i class="fas fa-chart-bar text-orange-600"></i>
+                    </div>
+                    <span class="font-medium">Laporan</span>
+                </a>
+                <a href="#" id="menuUser" class="sidebar-menu-item group flex items-center px-4 py-3.5 text-slate-700 rounded-xl hover:bg-gradient-to-r hover:from-teal-50 hover:to-cyan-50 hover:text-teal-700 transition-all duration-200 border border-transparent hover:border-teal-100">
+                    <div class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center mr-3 group-hover:bg-teal-200 transition-colors">
+                        <i class="fas fa-users text-teal-600"></i>
+                    </div>
+                    <span class="font-medium">Kelola User</span>
+                </a>
+                <a href="#" id="menuPengaturan" class="sidebar-menu-item group flex items-center px-4 py-3.5 text-slate-700 rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-slate-50 hover:text-gray-700 transition-all duration-200 border border-transparent hover:border-gray-100">
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mr-3 group-hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-cog text-gray-600"></i>
+                    </div>
+                    <span class="font-medium">Pengaturan</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="absolute bottom-0 w-full p-4">
+            <div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-5 border border-slate-200/50 shadow-lg backdrop-blur-sm">
+                <div class="flex items-center space-x-4 mb-4">
+                    <div class="relative">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                            <i class="fas fa-user text-white text-lg"></i>
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-800" id="currentUser">Ahmad Wijaya</p>
+                        <p class="text-xs text-slate-500 font-medium">Administrator</p>
+                    </div>
+                </div>
+                <button id="logoutBtn" class="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm py-2.5 px-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg font-medium">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Keluar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile menu button -->
+    <div class="md:hidden fixed top-6 left-6 z-50">
+        <button id="mobileMenuBtn" class="bg-white/90 backdrop-blur-sm p-3 rounded-xl shadow-lg border border-slate-200/50 hover:bg-white transition-all duration-200">
+            <i class="fas fa-bars text-slate-700"></i>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="md:ml-72 flex flex-col min-h-screen hidden">
+        <!-- Top Header -->
+        <header class="bg-white/80 backdrop-blur-sm shadow-sm border-b border-slate-200/50 relative z-40">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8 py-4 lg:py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 id="pageTitle" class="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">Dashboard</h1>
+                        <p id="pageSubtitle" class="text-sm lg:text-base text-slate-600 mt-2 font-medium">Selamat datang di sistem pengelolaan surat keluar</p>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <div class="relative">
+                            <button class="bg-slate-100 hover:bg-slate-200 p-3 rounded-xl transition-all duration-200 shadow-sm">
+                                <i class="fas fa-bell text-slate-600"></i>
+                            </button>
+                            <span class="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-semibold shadow-lg">3</span>
+                        </div>
+                        <div class="hidden sm:block text-right">
+                            <p class="text-sm font-semibold text-slate-800">Ahmad Wijaya</p>
+                            <p class="text-xs text-slate-500 font-medium">Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="flex-1 p-4 lg:p-6">
+            <div class="max-w-7xl mx-auto">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="group bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-blue-400/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm font-medium mb-2">Total Surat</p>
+                                <p class="text-3xl font-bold tracking-tight" id="totalSurat">0</p>
+                                <p class="text-blue-200 text-xs mt-1">+12% dari bulan lalu</p>
+                            </div>
+                            <div class="bg-white/20 backdrop-blur-sm rounded-2xl p-4 group-hover:bg-white/30 transition-all duration-300">
+                                <i class="fas fa-envelope text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="group bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-emerald-400/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-emerald-100 text-sm font-medium mb-2">Bulan Ini</p>
+                                <p class="text-3xl font-bold tracking-tight" id="suratBulanIni">0</p>
+                                <p class="text-emerald-200 text-xs mt-1">Januari 2025</p>
+                            </div>
+                            <div class="bg-white/20 backdrop-blur-sm rounded-2xl p-4 group-hover:bg-white/30 transition-all duration-300">
+                                <i class="fas fa-calendar-alt text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="group bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-amber-400/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-amber-100 text-sm font-medium mb-2">Kategori Aktif</p>
+                                <p class="text-3xl font-bold tracking-tight">4</p>
+                                <p class="text-amber-200 text-xs mt-1">Semua kategori</p>
+                            </div>
+                            <div class="bg-white/20 backdrop-blur-sm rounded-2xl p-4 group-hover:bg-white/30 transition-all duration-300">
+                                <i class="fas fa-tags text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="group bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-violet-400/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-violet-100 text-sm font-medium mb-2">Pengguna Aktif</p>
+                                <p class="text-3xl font-bold tracking-tight">12</p>
+                                <p class="text-violet-200 text-xs mt-1">Online sekarang</p>
+                            </div>
+                            <div class="bg-white/20 backdrop-blur-sm rounded-2xl p-4 group-hover:bg-white/30 transition-all duration-300">
+                                <i class="fas fa-users text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-slate-200/50">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-slate-800">Aktivitas Terbaru</h3>
+                            <div class="bg-blue-100 p-2 rounded-xl">
+                                <i class="fas fa-clock text-blue-600"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-4" id="recentActivity">
+                            <!-- Activity items will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-slate-200/50">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-slate-800">Statistik Kategori</h3>
+                            <div class="bg-purple-100 p-2 rounded-xl">
+                                <i class="fas fa-chart-pie text-purple-600"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-4" id="categoryStats">
+                            <!-- Category stats will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form Section -->
+        <div id="inputSection" class="hidden flex-1 p-4 lg:p-6">
+            <div class="max-w-5xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Input Surat Keluar Baru</h2>
+                            <p class="text-gray-600 mt-1">Lengkapi form di bawah untuk membuat surat keluar baru</p>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-full">
+                            <i class="fas fa-plus-circle text-blue-600 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <form id="suratForm" class="space-y-8">
+                        <!-- Kategori Section -->
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Kategori Surat</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
+                                    <select id="kategoriUtama" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                        <option value="">Pilih Kategori</option>
+                                        <option value="500.6">500.6 - Pertanian</option>
+                                        <option value="400.5">400.5 - Pendidikan</option>
+                                        <option value="300.4">300.4 - Kesehatan</option>
+                                        <option value="200.3">200.3 - Infrastruktur</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
+                                    <select id="subKategori" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required disabled>
+                                        <option value="">Pilih Sub Kategori</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
+                                    <select id="rincian" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required disabled>
+                                        <option value="">Pilih Rincian</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nomor Surat Preview -->
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Nomor Surat (Otomatis)</label>
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-blue-600 p-2 rounded-lg">
+                                    <i class="fas fa-hashtag text-white"></i>
+                                </div>
+                                <div id="nomorSurat" class="text-xl lg:text-2xl font-mono text-blue-600 font-bold break-all">
+                                    [Pilih kategori untuk generate nomor]
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detail Surat Section -->
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Detail Surat</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan Surat</label>
+                                    <input type="text" id="tujuanSurat" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nama instansi/penerima" required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
+                                    <input type="date" id="tanggalSurat" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mt-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
+                                    <select id="pembuatSurat" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                        <option value="">Pilih Pembuat Surat</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Status Pembuat</label>
+                                    <input type="text" id="statusPembuat" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" placeholder="Status akan muncul otomatis" readonly>
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Perihal/Keterangan</label>
+                                <textarea id="perihal" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan perihal atau keterangan surat" required></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
+                            <button type="button" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-times mr-2"></i>Batal
+                            </button>
+                            <button type="submit" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
+                                <i class="fas fa-save mr-2"></i>Simpan Surat
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Management Section -->
+        <div id="userSection" class="hidden flex-1 p-4 lg:p-6">
+            <div class="max-w-7xl mx-auto space-y-6">
+                <!-- User Actions Card -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Kelola Pengguna</h3>
+                            <p class="text-gray-600 text-sm mt-1">Tambah, edit, atau import data pengguna</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto" id="userActionButtons">
+                            <button id="btnTambahUser" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                <i class="fas fa-plus mr-2"></i>Tambah User
+                            </button>
+                            <button id="btnImportUser" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                <i class="fas fa-file-excel mr-2"></i>Import Excel
+                            </button>
+                            <button id="btnExportUser" class="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                <i class="fas fa-download mr-2"></i>Export Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filter -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Cari Nama/NIP</label>
+                            <input type="text" id="searchUser" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ketik untuk mencari...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                            <select id="filterRole" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Semua Role</option>
+                                <option value="Administrator">Administrator</option>
+                                <option value="Operator">Operator</option>
+                                <option value="User">User</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="btnSearchUser" class="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-4 py-2 rounded-lg text-sm transition-all">
+                                <i class="fas fa-search mr-1"></i>Cari
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Table Card -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Daftar Pengguna</h3>
+                                <p class="text-gray-600 text-sm mt-1">Total: <span id="totalUsers">0</span> pengguna</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIP</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pangkat/Gol</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jabatan</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terakhir Login</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Laporan Section -->
+        <div id="laporanSection" class="hidden flex-1 p-4 lg:p-6">
+            <div class="max-w-7xl mx-auto space-y-6">
+                <!-- Filter Laporan Card -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Filter Laporan</h3>
+                            <p class="text-gray-600 text-sm mt-1">Pilih periode dan kategori untuk laporan</p>
+                        </div>
+                        <div class="bg-orange-50 p-3 rounded-full">
+                            <i class="fas fa-chart-line text-orange-600"></i>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Periode</label>
+                            <select id="laporanPeriode" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <option value="bulan-ini">Bulan Ini</option>
+                                <option value="3-bulan">3 Bulan Terakhir</option>
+                                <option value="6-bulan">6 Bulan Terakhir</option>
+                                <option value="tahun-ini">Tahun Ini</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div id="customDateFrom" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dari Tanggal</label>
+                            <input type="date" id="laporanTanggalDari" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div id="customDateTo" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Sampai Tanggal</label>
+                            <input type="date" id="laporanTanggalSampai" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                            <select id="laporanKategori" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <option value="">Semua Kategori</option>
+                                <option value="500.6">500.6 - Pertanian</option>
+                                <option value="400.5">400.5 - Pendidikan</option>
+                                <option value="300.4">300.4 - Kesehatan</option>
+                                <option value="200.3">200.3 - Infrastruktur</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="btnGenerateLaporan" class="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white px-4 py-2 rounded-lg text-sm transition-all">
+                                <i class="fas fa-chart-bar mr-1"></i>Generate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistik Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm font-medium mb-2">Total Surat</p>
+                                <p class="text-3xl font-bold" id="laporanTotalSurat">0</p>
+                            </div>
+                            <div class="bg-white/20 rounded-xl p-3">
+                                <i class="fas fa-envelope text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-green-100 text-sm font-medium mb-2">Rata-rata/Bulan</p>
+                                <p class="text-3xl font-bold" id="laporanRataRata">0</p>
+                            </div>
+                            <div class="bg-white/20 rounded-xl p-3">
+                                <i class="fas fa-chart-line text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-purple-100 text-sm font-medium mb-2">Kategori Terbanyak</p>
+                                <p class="text-lg font-bold" id="laporanKategoriTop">-</p>
+                            </div>
+                            <div class="bg-white/20 rounded-xl p-3">
+                                <i class="fas fa-trophy text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-orange-100 text-sm font-medium mb-2">Bulan Tertinggi</p>
+                                <p class="text-lg font-bold" id="laporanBulanTop">-</p>
+                            </div>
+                            <div class="bg-white/20 rounded-xl p-3">
+                                <i class="fas fa-calendar-check text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Grafik Trend Bulanan -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-gray-800">Trend Surat Bulanan</h3>
+                            <div class="bg-blue-100 p-2 rounded-lg">
+                                <i class="fas fa-chart-line text-blue-600"></i>
+                            </div>
+                        </div>
+                        <div class="h-80">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Grafik Kategori -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-gray-800">Distribusi Kategori</h3>
+                            <div class="bg-purple-100 p-2 rounded-lg">
+                                <i class="fas fa-chart-pie text-purple-600"></i>
+                            </div>
+                        </div>
+                        <div class="h-80">
+                            <canvas id="kategoriChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel Detail dan Pembuat Surat -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Top Pembuat Surat -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-gray-800">Top Pembuat Surat</h3>
+                            <div class="bg-green-100 p-2 rounded-lg">
+                                <i class="fas fa-users text-green-600"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-4" id="topPembuatList">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Tren Harian -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-gray-800">Aktivitas Harian</h3>
+                            <div class="bg-orange-100 p-2 rounded-lg">
+                                <i class="fas fa-calendar-day text-orange-600"></i>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="harianChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Laporan -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Export Laporan</h3>
+                            <p class="text-gray-600 text-sm mt-1">Download laporan dalam berbagai format</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                            <button id="exportLaporanPDF" class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                            </button>
+                            <button id="exportLaporanExcel" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                <i class="fas fa-file-excel mr-2"></i>Export Excel
+                            </button>
+                            <button id="printLaporan" class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                <i class="fas fa-print mr-2"></i>Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Section -->
+        <div id="dataSection" class="hidden flex-1 p-4 lg:p-6">
+            <div class="max-w-7xl mx-auto space-y-6">
+                <!-- Filter Card -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Filter & Pencarian</h3>
+                            <p class="text-gray-600 text-sm mt-1">Gunakan filter untuk mencari data surat</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-full">
+                            <i class="fas fa-filter text-green-600"></i>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                            <select id="filterKategori" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Semua Kategori</option>
+                                <option value="500.6">500.6 - Pertanian</option>
+                                <option value="400.5">400.5 - Pendidikan</option>
+                                <option value="300.4">300.4 - Kesehatan</option>
+                                <option value="200.3">200.3 - Infrastruktur</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Dari</label>
+                            <input type="date" id="filterTanggalDari" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Sampai</label>
+                            <input type="date" id="filterTanggalSampai" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan</label>
+                            <input type="text" id="filterTujuan" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cari tujuan...">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="btnFilter" class="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg text-sm transition-all">
+                                <i class="fas fa-search mr-1"></i>Cari
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table Card -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Data Surat Keluar</h3>
+                                <p class="text-gray-600 text-sm mt-1">Daftar semua surat keluar yang telah dibuat</p>
+                            </div>
+                            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                                <button id="exportPDF" class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                                </button>
+                                <button id="exportExcel" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Surat</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tujuan</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembuat</th>
+                                    <th class="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Settings Section -->
+        <div id="pengaturanSection" class="hidden flex-1 p-4 lg:p-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Pengaturan Sistem</h2>
+                            <p class="text-gray-600 mt-1">Konfigurasi sistem dan pengaturan aplikasi</p>
+                        </div>
+                        <div class="bg-gray-100 p-3 rounded-full">
+                            <i class="fas fa-cog text-gray-600 text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- System Configuration -->
+                        <div class="bg-gray-50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                                <i class="fas fa-sliders-h mr-3 text-blue-600"></i>
+                                Konfigurasi Sistem
+                            </h3>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Organisasi</label>
+                                    <input type="text" id="organisasiName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="Dinas Administrasi">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Email Admin</label>
+                                    <input type="email" id="adminEmail" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="admin@suratku.example.com">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Zona Waktu</label>
+                                    <select id="timezone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="WIB">Waktu Indonesia Barat (WIB)</option>
+                                        <option value="WITA">Waktu Indonesia Tengah (WITA)</option>
+                                        <option value="WIT">Waktu Indonesia Timur (WIT)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Preferences -->
+                        <div class="bg-gray-50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                                <i class="fas fa-user-cog mr-3 text-green-600"></i>
+                                Preferensi Pengguna
+                            </h3>
+                            
+                            <div class="space-y-6">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700">Notifikasi Email</p>
+                                        <p class="text-xs text-gray-500 mt-1">Terima notifikasi melalui email</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only peer" id="emailNotifications" checked>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700">Tampilan Gelap</p>
+                                        <p class="text-xs text-gray-500 mt-1">Gunakan tema gelap untuk antarmuka</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only peer" id="darkMode">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Bahasa</label>
+                                    <select id="language" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="id">Bahasa Indonesia</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Settings -->
+                        <div class="bg-gray-50 rounded-xl p-6 lg:col-span-2">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                                <i class="fas fa-shield-alt mr-3 text-red-600"></i>
+                                Keamanan
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="md:col-span-2">
+                                    <p class="text-sm font-medium text-gray-700">Ubah Password</p>
+                                    <p class="text-xs text-gray-500 mt-1">Perbarui password Anda secara berkala untuk keamanan</p>
+                                </div>
+                                <div class="flex justify-end">
+                                    <button id="changePasswordBtn" class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md">
+                                        <i class="fas fa-key mr-2"></i>Ubah Password
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700">Autentikasi Dua Faktor</p>
+                                        <p class="text-xs text-gray-500 mt-1">Tambahkan lapisan keamanan ekstra</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only peer" id="twoFactorAuth">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="mt-8 flex justify-end">
+                        <button id="saveSettingsBtn" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg font-medium">
+                            <i class="fas fa-save mr-2"></i>Simpan Pengaturan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal untuk Tambah/Edit User -->
+    <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 id="userModalTitle" class="text-xl font-bold text-gray-800">Tambah Pengguna Baru</h3>
+                    <button id="closeUserModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <form id="userForm" class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap *</label>
+                        <input type="text" id="userName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">NIP *</label>
+                        <input type="text" id="userNip" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="18 digit NIP" maxlength="18" required>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pangkat/Golongan *</label>
+                        <input type="text" id="userPangkatGol" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Penata / III.c" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jabatan *</label>
+                        <input type="text" id="userJabatan" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Staff Administrasi" required>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="userEmail" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Optional">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                        <select id="userRole" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Pilih Role</option>
+                            <option value="Administrator">Administrator</option>
+                            <option value="Operator">Operator</option>
+                            <option value="User">User</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="passwordInfo" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-info-circle text-blue-600"></i>
+                        <p class="text-sm text-blue-800">Password default untuk user baru adalah <strong>123</strong></p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button type="button" id="cancelUserForm" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg">
+                        <i class="fas fa-save mr-2"></i>Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal untuk Import Excel -->
+    <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800">Import Data Pengguna dari Excel</h3>
+                    <button id="closeImportModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Upload Section -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                    <div class="space-y-4">
+                        <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-file-excel text-green-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-800">Upload File Excel</h4>
+                            <p class="text-gray-600 text-sm mt-1">Pilih file Excel (.xlsx, .xls) yang berisi data pengguna</p>
+                        </div>
+                        <div>
+                            <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden">
+                            <button id="selectFileBtn" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-lg transition-all shadow-md">
+                                <i class="fas fa-upload mr-2"></i>Pilih File
+                            </button>
+                        </div>
+                        <div id="selectedFileName" class="text-sm text-gray-600 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Template Download -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-blue-100 p-2 rounded-lg">
+                            <i class="fas fa-info-circle text-blue-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h5 class="font-semibold text-blue-800">Format File Excel</h5>
+                            <p class="text-blue-700 text-sm mt-1">File Excel harus memiliki kolom: Nama, NIP, Pangkat/Gol, Jabatan, Email, Role</p>
+                            <p class="text-blue-600 text-xs mt-1">* NIP wajib 18 digit, Email opsional, Password otomatis: 123</p>
+                            <button id="downloadTemplate" class="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                                <i class="fas fa-download mr-1"></i>Download Template Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="previewSection" class="hidden">
+                    <h5 class="font-semibold text-gray-800 mb-3">Preview Data (5 baris pertama)</h5>
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr id="previewHeader">
+                                    <!-- Headers will be populated here -->
+                                </tr>
+                            </thead>
+                            <tbody id="previewBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Preview data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <p class="text-green-800 text-sm">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Ditemukan <span id="totalImportRows">0</span> baris data yang siap diimport
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button type="button" id="cancelImport" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Batal
+                    </button>
+                    <button type="button" id="processImport" class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-upload mr-2"></i>Import Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data struktur kategori
+        const kategoriData = {
+            "500.6": {
+                name: "Pertanian",
+                sub: {
+                    "1": {
+                        name: "Kebijakan di Bidang Pertanian",
+                        rincian: {
+                            "1": "Kebijakan Umum Pertanian",
+                            "2": "Regulasi Pertanian",
+                            "3": "Program Pertanian"
+                        }
+                    },
+                    "2": {
+                        name: "Pengembangan Pertanian",
+                        rincian: {
+                            "1": "Inovasi Teknologi",
+                            "2": "Pelatihan Petani",
+                            "3": "Bantuan Alat"
+                        }
+                    }
+                }
+            },
+            "400.5": {
+                name: "Pendidikan",
+                sub: {
+                    "1": {
+                        name: "Kebijakan Pendidikan",
+                        rincian: {
+                            "1": "Kurikulum",
+                            "2": "Standar Pendidikan",
+                            "3": "Evaluasi"
+                        }
+                    },
+                    "2": {
+                        name: "Sarana Prasarana",
+                        rincian: {
+                            "1": "Pembangunan Sekolah",
+                            "2": "Peralatan",
+                            "3": "Maintenance"
+                        }
+                    }
+                }
+            },
+            "300.4": {
+                name: "Kesehatan",
+                sub: {
+                    "1": {
+                        name: "Pelayanan Kesehatan",
+                        rincian: {
+                            "1": "Puskesmas",
+                            "2": "Rumah Sakit",
+                            "3": "Posyandu"
+                        }
+                    }
+                }
+            },
+            "200.3": {
+                name: "Infrastruktur",
+                sub: {
+                    "1": {
+                        name: "Jalan dan Jembatan",
+                        rincian: {
+                            "1": "Pembangunan Jalan",
+                            "2": "Perbaikan Jalan",
+                            "3": "Jembatan"
+                        }
+                    }
+                }
+            }
+        };
+
+        // Data pengguna (simulasi database)
+        let dataUsers = [
+            {
+                id: 1,
+                nama: "Ahmad Wijaya",
+                email: "ahmad.wijaya@example.com",
+                nip: "196801011990031001",
+                password: "123",
+                pangkatGol: "Pembina Tk.I / IV.b",
+                jabatan: "Kepala Bagian IT",
+                role: "Administrator",
+                lastLogin: "2025-01-20 09:30:00",
+                createdAt: "2025-01-01"
+            },
+            {
+                id: 2,
+                nama: "Siti Nurhaliza",
+                email: "siti.nurhaliza@example.com",
+                nip: "197205151995032002",
+                password: "123",
+                pangkatGol: "Penata / III.c",
+                jabatan: "Staff Administrasi",
+                role: "Operator",
+                lastLogin: "2025-01-20 08:15:00",
+                createdAt: "2025-01-02"
+            },
+            {
+                id: 3,
+                nama: "Dr. Budi Santoso",
+                email: "budi.santoso@example.com",
+                nip: "198003102005011003",
+                password: "123",
+                pangkatGol: "Pembina / IV.a",
+                jabatan: "Dokter Ahli Pertama",
+                role: "User",
+                lastLogin: "2025-01-19 16:45:00",
+                createdAt: "2025-01-03"
+            },
+            {
+                id: 4,
+                nama: "Rina Kartika",
+                email: "rina.kartika@example.com",
+                nip: "198512202010012004",
+                password: "123",
+                pangkatGol: "Penata Muda / III.a",
+                jabatan: "Bendahara",
+                role: "Operator",
+                lastLogin: "2025-01-15 14:20:00",
+                createdAt: "2025-01-04"
+            },
+            {
+                id: 5,
+                nama: "Joko Widodo",
+                email: "joko.widodo@example.com",
+                nip: "197906152003121005",
+                password: "123",
+                pangkatGol: "Penata Muda Tk.I / III.b",
+                jabatan: "Staff SDM",
+                role: "User",
+                lastLogin: "2025-01-20 07:00:00",
+                createdAt: "2025-01-05"
+            }
+        ];
+
+        // Variable to store current user's role
+        let currentUserRole = null;
+
+        // Variabel untuk menyimpan data yang sedang ditampilkan (hasil filter)
+        let currentDisplayedUsers = dataUsers;
+        let editingUserId = null;
+        let importedData = [];
+
+        // Data surat (simulasi database)
+        let dataSurat = [
+            {
+                id: 1,
+                nomor: "500.6.1.1/001/2025",
+                tanggal: "2025-01-15",
+                tujuan: "Dinas Pertanian Kabupaten",
+                perihal: "Laporan Program Bantuan Bibit Padi",
+                pembuat: "Ahmad Wijaya",
+                pembuatId: 1,
+                kategori: "500.6",
+                fullKategori: "500.6.1.1"
+            },
+            {
+                id: 2,
+                nomor: "400.5.1.2/001/2025",
+                tanggal: "2025-01-16",
+                tujuan: "Dinas Pendidikan Provinsi",
+                perihal: "Usulan Revisi Kurikulum Lokal",
+                pembuat: "Siti Nurhaliza",
+                pembuatId: 2,
+                kategori: "400.5",
+                fullKategori: "400.5.1.2"
+            },
+            {
+                id: 3,
+                nomor: "300.4.1.1/001/2025",
+                tanggal: "2025-01-17",
+                tujuan: "Puskesmas Kecamatan",
+                perihal: "Koordinasi Program Imunisasi",
+                pembuat: "Dr. Budi Santoso",
+                pembuatId: 3,
+                kategori: "300.4",
+                fullKategori: "300.4.1.1"
+            },
+            {
+                id: 4,
+                nomor: "500.6.2.1/002/2025",
+                tanggal: "2025-01-18",
+                tujuan: "Balai Penyuluhan Pertanian",
+                perihal: "Program Pelatihan Petani Modern",
+                pembuat: "Ahmad Wijaya",
+                pembuatId: 1,
+                kategori: "500.6",
+                fullKategori: "500.6.2.1"
+            },
+            {
+                id: 5,
+                nomor: "400.5.1.1/002/2025",
+                tanggal: "2025-01-19",
+                tujuan: "Sekolah Dasar Negeri 1",
+                perihal: "Bantuan Sarana Pembelajaran",
+                pembuat: "Siti Nurhaliza",
+                pembuatId: 2,
+                kategori: "400.5",
+                fullKategori: "400.5.1.1"
+            }
+        ];
+
+        // Inisialisasi nomor urut yang benar saat aplikasi dimuat
+        updateAllNomorUrut();
+
+        // Counter untuk setiap kategori lengkap
+        let kategoriCounters = {};
+
+        // Variabel untuk menyimpan data yang sedang ditampilkan (hasil filter)
+        let currentDisplayedData = dataSurat;
+
+        // DOM Elements
+        const sidebar = document.getElementById('sidebar');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const pageTitle = document.getElementById('pageTitle');
+        const pageSubtitle = document.getElementById('pageSubtitle');
+
+        // Sections
+        const dashboardSection = document.getElementById('dashboardSection');
+        const inputSection = document.getElementById('inputSection');
+        const dataSection = document.getElementById('dataSection');
+        const userSection = document.getElementById('userSection');
+        const laporanSection = document.getElementById('laporanSection');
+        const pengaturanSection = document.getElementById('pengaturanSection');
+
+        // Menu items
+        const menuItems = document.querySelectorAll('.sidebar-menu-item');
+
+        // Form elements
+        const kategoriUtama = document.getElementById('kategoriUtama');
+        const subKategori = document.getElementById('subKategori');
+        const rincian = document.getElementById('rincian');
+        const nomorSurat = document.getElementById('nomorSurat');
+        const suratForm = document.getElementById('suratForm');
+        const tableBody = document.getElementById('tableBody');
+
+        // Mobile menu toggle
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // Set tanggal hari ini sebagai default
+        document.getElementById('tanggalSurat').value = new Date().toISOString().split('T')[0];
+
+        // Menu navigation
+        document.getElementById('menuDashboard').addEventListener('click', (e) => {
+            e.preventDefault();
+            showSection('dashboard');
+        });
+
+        document.getElementById('menuInput').addEventListener('click', (e) => {
+            e.preventDefault();
+            // Check if user has permission to access this section
+            if (document.getElementById('menuInput').style.display !== 'none') {
+                showSection('input');
+            } else {
+                showNotification('Anda tidak memiliki akses ke bagian ini!', 'error');
+            }
+        });
+
+        document.getElementById('menuData').addEventListener('click', (e) => {
+            e.preventDefault();
+            // Check if user has permission to access this section
+            if (document.getElementById('menuData').style.display !== 'none') {
+                showSection('data');
+            } else {
+                showNotification('Anda tidak memiliki akses ke bagian ini!', 'error');
+            }
+        });
+
+        document.getElementById('menuUser').addEventListener('click', (e) => {
+            e.preventDefault();
+            // Check if user has permission to access this section
+            if (document.getElementById('menuUser').style.display !== 'none') {
+                showSection('user');
+            } else {
+                showNotification('Anda tidak memiliki akses ke bagian ini!', 'error');
+            }
+        });
+
+        document.getElementById('menuLaporan').addEventListener('click', (e) => {
+            e.preventDefault();
+            // Check if user has permission to access this section
+            if (document.getElementById('menuLaporan').style.display !== 'none') {
+                showSection('laporan');
+            } else {
+                showNotification('Anda tidak memiliki akses ke bagian ini!', 'error');
+            }
+        });
+
+        document.getElementById('menuPengaturan').addEventListener('click', (e) => {
+            e.preventDefault();
+            // Check if user has permission to access this section
+            if (document.getElementById('menuPengaturan').style.display !== 'none') {
+                showSection('pengaturan');
+            } else {
+                showNotification('Anda tidak memiliki akses ke bagian ini!', 'error');
+            }
+        });
+
+        // Load users into pembuat surat dropdown
+        function loadPembuatSuratOptions() {
+            const pembuatSurat = document.getElementById('pembuatSurat');
+            pembuatSurat.innerHTML = '<option value="">Pilih Pembuat Surat</option>';
+
+            // Load all users (no status filter since we removed status field)
+            dataUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.nama} - ${user.jabatan}`;
+                option.dataset.role = user.role;
+                option.dataset.jabatan = user.jabatan;
+                option.dataset.pangkatGol = user.pangkatGol;
+                pembuatSurat.appendChild(option);
+            });
+        }
+
+        // Show section function
+        function showSection(section) {
+            // Hide all sections
+            dashboardSection.classList.add('hidden');
+            inputSection.classList.add('hidden');
+            dataSection.classList.add('hidden');
+            userSection.classList.add('hidden');
+            laporanSection.classList.add('hidden');
+            pengaturanSection.classList.add('hidden');
+
+            // Remove active class from all menu items
+            menuItems.forEach(item => {
+                item.classList.remove('active');
+                item.classList.remove('bg-gradient-to-r', 'from-blue-50', 'to-indigo-50', 'text-blue-700', 'border-blue-100');
+                item.classList.remove('bg-gradient-to-r', 'from-green-50', 'to-emerald-50', 'text-green-700', 'border-green-100');
+                item.classList.remove('bg-gradient-to-r', 'from-purple-50', 'to-violet-50', 'text-purple-700', 'border-purple-100');
+                item.classList.remove('bg-gradient-to-r', 'from-teal-50', 'to-cyan-50', 'text-teal-700', 'border-teal-100');
+                item.classList.remove('bg-gradient-to-r', 'from-orange-50', 'to-amber-50', 'text-orange-700', 'border-orange-100');
+                item.classList.add('text-slate-700', 'border-transparent');
+            });
+
+            // Show selected section and update menu
+            switch(section) {
+                case 'dashboard':
+                    dashboardSection.classList.remove('hidden');
+                    document.getElementById('menuDashboard').classList.add('active', 'bg-gradient-to-r', 'from-blue-50', 'to-indigo-50', 'text-blue-700', 'border-blue-100');
+                    document.getElementById('menuDashboard').classList.remove('text-slate-700', 'border-transparent');
+                    pageTitle.textContent = 'Dashboard';
+                    pageSubtitle.textContent = 'Selamat datang di sistem pengelolaan surat keluar';
+                    updateDashboardStats();
+                    break;
+                case 'input':
+                    inputSection.classList.remove('hidden');
+                    document.getElementById('menuInput').classList.add('active', 'bg-gradient-to-r', 'from-green-50', 'to-emerald-50', 'text-green-700', 'border-green-100');
+                    document.getElementById('menuInput').classList.remove('text-slate-700', 'border-transparent');
+                    pageTitle.textContent = 'Input Surat Baru';
+                    pageSubtitle.textContent = 'Buat surat keluar baru dengan sistem penomoran otomatis';
+                    loadPembuatSuratOptions();
+                    break;
+                case 'data':
+                    dataSection.classList.remove('hidden');
+                    document.getElementById('menuData').classList.add('active', 'bg-gradient-to-r', 'from-purple-50', 'to-violet-50', 'text-purple-700', 'border-purple-100');
+                    document.getElementById('menuData').classList.remove('text-slate-700', 'border-transparent');
+                    pageTitle.textContent = 'Data Surat Keluar';
+                    pageSubtitle.textContent = 'Kelola dan pantau semua surat keluar yang telah dibuat';
+                    loadTableData();
+                    break;
+                case 'user':
+                    userSection.classList.remove('hidden');
+                    document.getElementById('menuUser').classList.add('active', 'bg-gradient-to-r', 'from-teal-50', 'to-cyan-50', 'text-teal-700', 'border-teal-100');
+                    document.getElementById('menuUser').classList.remove('text-slate-700', 'border-transparent');
+                    pageTitle.textContent = 'Kelola User';
+                    pageSubtitle.textContent = 'Manajemen pengguna sistem dan hak akses';
+                    loadUserTable();
+                    break;
+                case 'laporan':
+                    laporanSection.classList.remove('hidden');
+                    document.getElementById('menuLaporan').classList.add('active', 'bg-gradient-to-r', 'from-orange-50', 'to-amber-50', 'text-orange-700', 'border-orange-100');
+                    document.getElementById('menuLaporan').classList.remove('text-slate-700', 'border-transparent');
+                    pageTitle.textContent = 'Laporan';
+                    pageSubtitle.textContent = 'Lihat laporan dan statistik surat keluar';
+                    initializeLaporan();
+                    break;
+                case 'pengaturan':
+                    pengaturanSection.classList.remove('hidden');
+                    document.getElementById('menuPengaturan').classList.add('active', 'bg-gradient-to-r', 'from-gray-50', 'to-slate-50', 'text-gray-700', 'border-gray-100');
+                    document.getElementById('menuPengaturan').classList.remove('text-slate-700', 'border-transparent');
+                    pageTitle.textContent = 'Pengaturan';
+                    pageSubtitle.textContent = 'Konfigurasi sistem dan pengaturan aplikasi';
+                    // Initialize settings when the section is shown
+                    initializeSettings();
+                    break;
+            }
+
+            // Close mobile menu on mobile devices only
+            if (window.innerWidth < 768) {
+                sidebar.classList.add('-translate-x-full');
+            }
+        }
+
+        // Update dashboard statistics
+        function updateDashboardStats() {
+            document.getElementById('totalSurat').textContent = dataSurat.length;
+
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            const suratBulanIni = dataSurat.filter(surat => {
+                const suratDate = new Date(surat.tanggal);
+                return suratDate.getMonth() === currentMonth && suratDate.getFullYear() === currentYear;
+            }).length;
+
+            document.getElementById('suratBulanIni').textContent = suratBulanIni;
+
+            // Update recent activity
+            updateRecentActivity();
+            updateCategoryStats();
+        }
+
+        // Update recent activity
+        function updateRecentActivity() {
+            const recentActivity = document.getElementById('recentActivity');
+            const recentSurat = dataSurat.slice(-5).reverse();
+
+            recentActivity.innerHTML = '';
+            recentSurat.forEach(surat => {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'flex items-center space-x-4 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl border border-slate-200/50 hover:shadow-md transition-all duration-200';
+                activityItem.innerHTML = `
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fas fa-envelope text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-slate-800">${surat.nomor}</p>
+                        <p class="text-xs text-slate-600 mt-1">${surat.tujuan}</p>
+                    </div>
+                    <div class="text-xs text-slate-500 font-medium">
+                        ${formatTanggal(surat.tanggal)}
+                    </div>
+                `;
+                recentActivity.appendChild(activityItem);
+            });
+        }
+
+        // Update category statistics
+        function updateCategoryStats() {
+            const categoryStats = document.getElementById('categoryStats');
+            const stats = {};
+
+            dataSurat.forEach(surat => {
+                const kategori = surat.kategori;
+                stats[kategori] = (stats[kategori] || 0) + 1;
+            });
+
+            categoryStats.innerHTML = '';
+            Object.entries(stats).forEach(([kategori, count]) => {
+                const kategoriName = kategoriData[kategori]?.name || kategori;
+                const percentage = Math.round((count / dataSurat.length) * 100);
+
+                const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500'];
+                const colorIndex = Object.keys(stats).indexOf(kategori) % colors.length;
+
+                const statItem = document.createElement('div');
+                statItem.className = 'flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-purple-50 rounded-xl border border-slate-200/50';
+                statItem.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <div class="w-4 h-4 ${colors[colorIndex]} rounded-full shadow-sm"></div>
+                        <span class="text-sm font-medium text-slate-700">${kategoriName}</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-bold text-slate-800">${count}</span>
+                        <span class="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full">${percentage}%</span>
+                    </div>
+                `;
+                categoryStats.appendChild(statItem);
+            });
+        }
+
+        // Kategori change handlers (same as before)
+        kategoriUtama.addEventListener('change', function() {
+            const selectedKategori = this.value;
+            subKategori.innerHTML = '<option value="">Pilih Sub Kategori</option>';
+            rincian.innerHTML = '<option value="">Pilih Rincian</option>';
+
+            if (selectedKategori && kategoriData[selectedKategori]) {
+                subKategori.disabled = false;
+                const subs = kategoriData[selectedKategori].sub;
+
+                for (const [key, value] of Object.entries(subs)) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${key} - ${value.name}`;
+                    subKategori.appendChild(option);
+                }
+            } else {
+                subKategori.disabled = true;
+                rincian.disabled = true;
+            }
+            updateNomorSurat();
+        });
+
+        subKategori.addEventListener('change', function() {
+            const selectedKategori = kategoriUtama.value;
+            const selectedSub = this.value;
+            rincian.innerHTML = '<option value="">Pilih Rincian</option>';
+
+            if (selectedKategori && selectedSub && kategoriData[selectedKategori].sub[selectedSub]) {
+                rincian.disabled = false;
+                const rincianData = kategoriData[selectedKategori].sub[selectedSub].rincian;
+
+                for (const [key, value] of Object.entries(rincianData)) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${key} - ${value}`;
+                    rincian.appendChild(option);
+                }
+            } else {
+                rincian.disabled = true;
+            }
+            updateNomorSurat();
+        });
+
+        rincian.addEventListener('change', updateNomorSurat);
+
+        // Pembuat surat change handler
+        document.getElementById('pembuatSurat').addEventListener('change', function() {
+            const selectedUserId = this.value;
+            const statusPembuat = document.getElementById('statusPembuat');
+
+            if (selectedUserId) {
+                const selectedUser = dataUsers.find(user => user.id == selectedUserId);
+                if (selectedUser) {
+                    statusPembuat.value = `${selectedUser.pangkatGol} - ${selectedUser.jabatan}`;
+                }
+            } else {
+                statusPembuat.value = '';
+            }
+        });
+
+        // Fungsi untuk mendapatkan nomor urut berikutnya untuk kategori utama tertentu
+        function getNextNomorUrut(kategoriUtama) {
+            // Hitung berapa banyak surat dengan kategori utama yang sama
+            const existingSurat = dataSurat.filter(surat => surat.kategori === kategoriUtama);
+            return existingSurat.length + 1;
+        }
+
+        // Fungsi untuk memperbarui nomor urut semua surat berdasarkan kategori utama
+        function updateAllNomorUrut() {
+            // Kelompokkan surat berdasarkan kategori utama
+            const kategoriGroups = {};
+            dataSurat.forEach(surat => {
+                if (!kategoriGroups[surat.kategori]) {
+                    kategoriGroups[surat.kategori] = [];
+                }
+                kategoriGroups[surat.kategori].push(surat);
+            });
+
+            // Update nomor urut untuk setiap kategori
+            Object.keys(kategoriGroups).forEach(kategori => {
+                // Urutkan berdasarkan tanggal untuk konsistensi
+                kategoriGroups[kategori].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+
+                // Update nomor urut
+                kategoriGroups[kategori].forEach((surat, index) => {
+                    const tahun = new Date(surat.tanggal).getFullYear();
+                    const nomorBaru = String(index + 1).padStart(3, '0');
+                    surat.nomor = `${surat.fullKategori}/${nomorBaru}/${tahun}`;
+                });
+            });
+        }
+
+        // Update nomor surat
+        function updateNomorSurat() {
+            const kategori = kategoriUtama.value;
+            const sub = subKategori.value;
+            const rinc = rincian.value;
+            const tahun = new Date().getFullYear();
+
+            if (kategori && sub && rinc) {
+                const fullKategori = `${kategori}.${sub}.${rinc}`;
+                const nomorUrut = getNextNomorUrut(kategori); // Menggunakan kategori utama untuk penomoran
+                const nomorFormatted = String(nomorUrut).padStart(3, '0');
+                const nomorLengkap = `${fullKategori}/${nomorFormatted}/${tahun}`;
+                nomorSurat.textContent = nomorLengkap;
+            } else {
+                nomorSurat.textContent = '[Pilih kategori untuk generate nomor]';
+            }
+        }
+
+        // Form submit handler
+        suratForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if user has permission to create surat
+            if (currentUserRole === 'User') {
+                showNotification('Anda tidak memiliki izin untuk membuat surat baru!', 'error');
+                return;
+            }
+
+            const kategori = kategoriUtama.value;
+            const sub = subKategori.value;
+            const rinc = rincian.value;
+            const fullKategori = `${kategori}.${sub}.${rinc}`;
+            const selectedUserId = document.getElementById('pembuatSurat').value;
+
+            // Validate pembuat surat
+            if (!selectedUserId) {
+                showNotification('Pilih pembuat surat terlebih dahulu!', 'error');
+                return;
+            }
+
+            const selectedUser = dataUsers.find(user => user.id == selectedUserId);
+            if (!selectedUser) {
+                showNotification('Pembuat surat tidak valid!', 'error');
+                return;
+            }
+
+            const formData = {
+                id: Date.now(),
+                nomor: nomorSurat.textContent,
+                tanggal: document.getElementById('tanggalSurat').value,
+                tujuan: document.getElementById('tujuanSurat').value,
+                perihal: document.getElementById('perihal').value,
+                pembuat: selectedUser.nama,
+                pembuatId: selectedUser.id,
+                kategori: kategori,
+                fullKategori: fullKategori
+            };
+
+            dataSurat.push(formData);
+
+            // Update semua nomor urut setelah menambah surat baru
+            updateAllNomorUrut();
+
+            // Reset form
+            suratForm.reset();
+            subKategori.disabled = true;
+            rincian.disabled = true;
+            subKategori.innerHTML = '<option value="">Pilih Sub Kategori</option>';
+            rincian.innerHTML = '<option value="">Pilih Rincian</option>';
+            nomorSurat.textContent = '[Pilih kategori untuk generate nomor]';
+            document.getElementById('tanggalSurat').value = new Date().toISOString().split('T')[0];
+            document.getElementById('statusPembuat').value = '';
+            loadPembuatSuratOptions();
+
+            // Show success message
+            showNotification('Surat berhasil disimpan!', 'success');
+
+            // Update dashboard if visible
+            if (!dashboardSection.classList.contains('hidden')) {
+                updateDashboardStats();
+            }
+        });
+
+        // Load table data
+        function loadTableData(filteredData = null) {
+            let data = filteredData || dataSurat;
+            
+            // Filter data based on user role if needed
+            if (currentUserRole === 'User') {
+                // For regular users, only show their own surat
+                const currentUser = dataUsers.find(u => u.nama === document.getElementById('currentUser').textContent);
+                if (currentUser) {
+                    data = data.filter(surat => surat.pembuatId === currentUser.id);
+                }
+            }
+            
+            // Update currentDisplayedData dengan data yang sedang ditampilkan
+            currentDisplayedData = data;
+            
+            tableBody.innerHTML = '';
+            
+            data.forEach((surat, index) => {
+                // Check if user can edit/delete based on role
+                let actionButtons = '';
+                if (currentUserRole === 'Administrator' || currentUserRole === 'Operator' || 
+                    (currentUserRole === 'User' && surat.pembuat === document.getElementById('currentUser').textContent)) {
+                    actionButtons = `
+                        <button class="text-blue-600 hover:text-blue-800 mr-3 transition-colors" onclick="editSurat(${surat.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800 transition-colors" onclick="deleteSurat(${surat.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                } else {
+                    // View-only mode for users who don't own the surat
+                    actionButtons = `
+                        <button class="text-gray-400 cursor-not-allowed" disabled>
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    `;
+                }
+                
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+                row.innerHTML = `
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-medium">${surat.nomor}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatTanggal(surat.tanggal)}</td>
+                    <td class="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-sm truncate">${surat.tujuan}</td>
+                    <td class="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-md truncate">${surat.perihal}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${surat.pembuat}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        ${actionButtons}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Format tanggal
+        function formatTanggal(tanggal) {
+            const date = new Date(tanggal);
+            return date.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all transform translate-x-full`;
+
+            const colors = {
+                success: 'bg-green-500 text-white',
+                error: 'bg-red-500 text-white',
+                info: 'bg-blue-500 text-white',
+                warning: 'bg-yellow-500 text-white'
+            };
+
+            notification.className += ` ${colors[type]}`;
+            notification.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+
+            // Animate out and remove
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Filter functionality
+        document.getElementById('btnFilter').addEventListener('click', function() {
+            const filterKategori = document.getElementById('filterKategori').value;
+            const filterTanggalDari = document.getElementById('filterTanggalDari').value;
+            const filterTanggalSampai = document.getElementById('filterTanggalSampai').value;
+            const filterTujuan = document.getElementById('filterTujuan').value.toLowerCase();
+
+            let filteredData = dataSurat.filter(surat => {
+                let match = true;
+
+                if (filterKategori && !surat.kategori.includes(filterKategori)) {
+                    match = false;
+                }
+
+                if (filterTanggalDari && surat.tanggal < filterTanggalDari) {
+                    match = false;
+                }
+
+                if (filterTanggalSampai && surat.tanggal > filterTanggalSampai) {
+                    match = false;
+                }
+
+                if (filterTujuan && !surat.tujuan.toLowerCase().includes(filterTujuan)) {
+                    match = false;
+                }
+
+                return match;
+            });
+
+            // Simpan data yang difilter untuk export
+            currentDisplayedData = filteredData;
+
+            loadTableData(filteredData);
+
+            // Tampilkan notifikasi hasil filter
+            if (filteredData.length === 0) {
+                showNotification('Tidak ada data yang sesuai dengan filter', 'warning');
+            } else {
+                showNotification(`Menampilkan ${filteredData.length} data hasil filter`, 'success');
+            }
+        });
+
+        // Export PDF functionality - menggunakan data yang sedang ditampilkan
+        document.getElementById('exportPDF').addEventListener('click', function() {
+            if (currentDisplayedData.length === 0) {
+                showNotification('Tidak ada data untuk di-export', 'warning');
+                return;
+            }
+
+            // Tentukan kategori untuk header jika hanya satu kategori yang ditampilkan
+            const uniqueCategories = [...new Set(currentDisplayedData.map(surat => surat.kategori))];
+            const selectedKategori = uniqueCategories.length === 1 ? uniqueCategories[0] : '';
+
+            generatePDF(currentDisplayedData, selectedKategori);
+            showNotification(`PDF berhasil di-export dengan ${currentDisplayedData.length} data`, 'success');
+        });
+
+        // Function to generate PDF
+        function generatePDF(dataToExport = dataSurat, selectedKategori = '') {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape'); // Landscape untuk tabel yang lebih lebar
+
+            // Header
+            doc.setFontSize(16);
+            let headerText = 'Laporan Surat Keluar';
+            if (selectedKategori) {
+                const kategoriName = kategoriData[selectedKategori]?.name || selectedKategori;
+                headerText += ` - Kategori ${selectedKategori} (${kategoriName})`;
+            }
+            doc.text(headerText, 20, 20);
+
+            // Tambahkan info filter jika ada
+            if (selectedKategori) {
+                doc.setFontSize(10);
+                doc.text(`Total data: ${dataToExport.length} surat`, 20, 30);
+            }
+
+            // Table header
+            doc.setFontSize(10);
+            const startY = selectedKategori ? 45 : 40;
+            const rowHeight = 8;
+            const colWidths = [15, 60, 80, 30, 90]; // Lebar kolom
+            const colPositions = [20, 35, 95, 175, 205]; // Posisi X untuk setiap kolom
+
+            // Draw table header
+            doc.setFillColor(240, 240, 240);
+            doc.rect(20, startY - 5, 275, rowHeight, 'F');
+
+            doc.setFont(undefined, 'bold');
+            doc.text('No', colPositions[0], startY);
+            doc.text('No Surat', colPositions[1], startY);
+            doc.text('Tujuan', colPositions[2], startY);
+            doc.text('Tanggal Surat', colPositions[3], startY);
+            doc.text('Perihal', colPositions[4], startY);
+
+            // Draw header border
+            doc.setDrawColor(0, 0, 0);
+            doc.line(20, startY - 5, 295, startY - 5); // Top
+            doc.line(20, startY + 3, 295, startY + 3); // Bottom
+            doc.line(20, startY - 5, 20, startY + 3); // Left
+            doc.line(295, startY - 5, 295, startY + 3); // Right
+
+            // Vertical lines for columns
+            let xPos = 20;
+            for (let i = 0; i < colWidths.length; i++) {
+                xPos += colWidths[i];
+                doc.line(xPos, startY - 5, xPos, startY + 3);
+            }
+
+            // Kelompokkan data berdasarkan kategori utama dan urutkan
+            const groupedData = {};
+            dataToExport.forEach(surat => {
+                if (!groupedData[surat.kategori]) {
+                    groupedData[surat.kategori] = [];
+                }
+                groupedData[surat.kategori].push(surat);
+            });
+
+            // Urutkan setiap grup berdasarkan tanggal
+            Object.keys(groupedData).forEach(kategori => {
+                groupedData[kategori].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+            });
+
+            // Buat array data yang sudah diurutkan dengan nomor urut yang benar
+            const sortedData = [];
+            const kategoriCounters = {};
+
+            // Urutkan kategori
+            const sortedKategori = Object.keys(groupedData).sort();
+
+            sortedKategori.forEach(kategori => {
+                kategoriCounters[kategori] = 0;
+                groupedData[kategori].forEach(surat => {
+                    kategoriCounters[kategori]++;
+                    sortedData.push({
+                        ...surat,
+                        displayNumber: kategoriCounters[kategori]
+                    });
+                });
+            });
+
+            // Table data
+            doc.setFont(undefined, 'normal');
+            let currentY = startY + rowHeight + 5;
+
+            sortedData.forEach((surat, index) => {
+                if (currentY > 190) { // Check if need new page
+                    doc.addPage('landscape');
+                    currentY = 20;
+                }
+
+                // Draw row background (alternating)
+                if (index % 2 === 0) {
+                    doc.setFillColor(250, 250, 250);
+                    doc.rect(20, currentY - 5, 275, rowHeight, 'F');
+                }
+
+                // Add data dengan nomor urut yang benar berdasarkan kategori
+                doc.text(String(surat.displayNumber), colPositions[0], currentY);
+                doc.text(surat.nomor, colPositions[1], currentY);
+
+                // Wrap long text for Tujuan
+                const tujuanLines = doc.splitTextToSize(surat.tujuan, 75);
+                doc.text(tujuanLines[0] || '', colPositions[2], currentY);
+
+                doc.text(formatTanggal(surat.tanggal), colPositions[3], currentY);
+
+                // Wrap long text for Perihal
+                const perihalLines = doc.splitTextToSize(surat.perihal, 85);
+                doc.text(perihalLines[0] || '', colPositions[4], currentY);
+
+                // Draw row borders
+                doc.setDrawColor(200, 200, 200);
+                doc.line(20, currentY + 3, 295, currentY + 3); // Bottom line
+                doc.line(20, currentY - 5, 20, currentY + 3); // Left line
+                doc.line(295, currentY - 5, 295, currentY + 3); // Right line
+
+                // Vertical lines for columns
+                let xPos = 20;
+                for (let i = 0; i < colWidths.length; i++) {
+                    xPos += colWidths[i];
+                    doc.line(xPos, currentY - 5, xPos, currentY + 3);
+                }
+
+                currentY += rowHeight;
+            });
+
+            // Generate filename berdasarkan filter
+            let filename = 'laporan-surat-keluar';
+            if (selectedKategori) {
+                filename += `-kategori-${selectedKategori}`;
+            }
+            filename += '.pdf';
+
+            doc.save(filename);
+        }
+
+        // Export Excel - menggunakan data yang sedang ditampilkan
+        document.getElementById('exportExcel').addEventListener('click', function() {
+            if (currentDisplayedData.length === 0) {
+                showNotification('Tidak ada data untuk di-export', 'warning');
+                return;
+            }
+
+            const ws_data = [
+                ['No', 'No Surat', 'Tujuan', 'Tanggal Surat', 'Perihal']
+            ];
+
+            // Kelompokkan data berdasarkan kategori utama dan urutkan
+            const groupedData = {};
+            currentDisplayedData.forEach(surat => {
+                if (!groupedData[surat.kategori]) {
+                    groupedData[surat.kategori] = [];
+                }
+                groupedData[surat.kategori].push(surat);
+            });
+
+            // Urutkan setiap grup berdasarkan tanggal
+            Object.keys(groupedData).forEach(kategori => {
+                groupedData[kategori].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+            });
+
+            // Buat array data yang sudah diurutkan dengan nomor urut yang benar
+            const kategoriCounters = {};
+
+            // Urutkan kategori
+            const sortedKategori = Object.keys(groupedData).sort();
+
+            sortedKategori.forEach(kategori => {
+                kategoriCounters[kategori] = 0;
+                groupedData[kategori].forEach(surat => {
+                    kategoriCounters[kategori]++;
+                    ws_data.push([
+                        kategoriCounters[kategori],
+                        surat.nomor,
+                        surat.tujuan,
+                        formatTanggal(surat.tanggal),
+                        surat.perihal
+                    ]);
+                });
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 5 },   // No
+                { wch: 25 },  // No Surat
+                { wch: 30 },  // Tujuan
+                { wch: 15 },  // Tanggal Surat
+                { wch: 40 }   // Perihal
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Surat Keluar");
+
+            // Generate filename berdasarkan filter
+            const uniqueCategories = [...new Set(currentDisplayedData.map(surat => surat.kategori))];
+            let filename = 'laporan-surat-keluar';
+            if (uniqueCategories.length === 1) {
+                filename += `-kategori-${uniqueCategories[0]}`;
+            }
+            filename += '.xlsx';
+
+            XLSX.writeFile(wb, filename);
+            showNotification(`Excel berhasil di-export dengan ${currentDisplayedData.length} data`, 'success');
+        });
+
+        // Edit dan Delete functions
+        function editSurat(id) {
+            // Check if user has permission to edit
+            if (currentUserRole !== 'Administrator' && currentUserRole !== 'Operator') {
+                const surat = dataSurat.find(s => s.id === id);
+                const currentUser = dataUsers.find(u => u.nama === document.getElementById('currentUser').textContent);
+                
+                // Regular users can only edit their own surat
+                if (currentUserRole === 'User' && surat && surat.pembuatId !== currentUser.id) {
+                    showNotification('Anda hanya dapat mengedit surat yang Anda buat!', 'error');
+                    return;
+                }
+            }
+            
+            showNotification('Fitur edit akan dikembangkan lebih lanjut', 'info');
+        }
+
+        function deleteSurat(id) {
+            // Check if user has permission to delete
+            if (currentUserRole !== 'Administrator' && currentUserRole !== 'Operator') {
+                const surat = dataSurat.find(s => s.id === id);
+                const currentUser = dataUsers.find(u => u.nama === document.getElementById('currentUser').textContent);
+                
+                // Regular users can only delete their own surat
+                if (currentUserRole === 'User' && surat && surat.pembuatId !== currentUser.id) {
+                    showNotification('Anda hanya dapat menghapus surat yang Anda buat!', 'error');
+                    return;
+                }
+            }
+            
+            if (confirm('Apakah Anda yakin ingin menghapus surat ini?')) {
+                // Hapus surat
+                dataSurat = dataSurat.filter(surat => surat.id !== id);
+
+                // Update semua nomor urut setelah penghapusan
+                updateAllNomorUrut();
+
+                loadTableData();
+                updateDashboardStats();
+                showNotification('Surat berhasil dihapus dan nomor urut telah diperbarui', 'success');
+            }
+        }
+
+        // ===== USER MANAGEMENT FUNCTIONS =====
+
+        // Load user table data
+        function loadUserTable(filteredData = null) {
+            // Only administrators can view and manage users
+            if (currentUserRole !== 'Administrator') {
+                showNotification('Anda tidak memiliki akses ke manajemen pengguna!', 'error');
+                return;
+            }
+            
+            const data = filteredData || dataUsers;
+            currentDisplayedUsers = data;
+            
+            const userTableBody = document.getElementById('userTableBody');
+            const totalUsers = document.getElementById('totalUsers');
+            
+            userTableBody.innerHTML = '';
+            totalUsers.textContent = data.length;
+            
+            data.forEach((user, index) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+                
+                const roleBadge = getRoleBadge(user.role);
+                
+                // Prevent users from editing/deleting themselves
+                const currentUser = dataUsers.find(u => u.nama === document.getElementById('currentUser').textContent);
+                let actionButtons = '';
+                
+                if (currentUser && user.id === currentUser.id) {
+                    // Current user - view only
+                    actionButtons = `
+                        <button class="text-gray-400 cursor-not-allowed" disabled>
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="text-gray-400 cursor-not-allowed ml-3" disabled>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                } else {
+                    // Other users - full access
+                    actionButtons = `
+                        <button class="text-blue-600 hover:text-blue-800 mr-3 transition-colors" onclick="editUser(${user.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800 transition-colors" onclick="deleteUser(${user.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                }
+                
+                row.innerHTML = `
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.nama}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">${user.nip}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.pangkatGol}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.jabatan}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${roleBadge}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDateTime(user.lastLogin)}</td>
+                    <td class="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        ${actionButtons}
+                    </td>
+                `;
+                userTableBody.appendChild(row);
+            });
+        }
+
+        // Get role badge
+        function getRoleBadge(role) {
+            const badges = {
+                'Administrator': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Administrator</span>',
+                'Operator': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Operator</span>',
+                'User': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">User</span>'
+            };
+            return badges[role] || role;
+        }
+
+        // Format date time
+        function formatDateTime(dateTime) {
+            const date = new Date(dateTime);
+            return date.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Modal functions
+        function openUserModal(isEdit = false, userId = null) {
+            const modal = document.getElementById('userModal');
+            const title = document.getElementById('userModalTitle');
+            const passwordInfo = document.getElementById('passwordInfo');
+
+            editingUserId = userId;
+
+            if (isEdit && userId) {
+                const user = dataUsers.find(u => u.id === userId);
+                if (user) {
+                    title.textContent = 'Edit Pengguna';
+                    document.getElementById('userName').value = user.nama;
+                    document.getElementById('userNip').value = user.nip;
+                    document.getElementById('userPangkatGol').value = user.pangkatGol;
+                    document.getElementById('userJabatan').value = user.jabatan;
+                    document.getElementById('userEmail').value = user.email || '';
+                    document.getElementById('userRole').value = user.role;
+
+                    // Hide password info for edit
+                    passwordInfo.style.display = 'none';
+                }
+            } else {
+                title.textContent = 'Tambah Pengguna Baru';
+                document.getElementById('userForm').reset();
+                passwordInfo.style.display = 'block';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            const modal = document.getElementById('userModal');
+            modal.classList.add('hidden');
+            document.getElementById('userForm').reset();
+            editingUserId = null;
+        }
+
+        // User form submit
+        document.getElementById('userForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = {
+                nama: document.getElementById('userName').value,
+                nip: document.getElementById('userNip').value,
+                pangkatGol: document.getElementById('userPangkatGol').value,
+                jabatan: document.getElementById('userJabatan').value,
+                email: document.getElementById('userEmail').value,
+                role: document.getElementById('userRole').value
+            };
+
+            // Validate NIP format (18 digits)
+            if (!/^\d{18}$/.test(formData.nip)) {
+                showNotification('NIP harus berupa 18 digit angka!', 'error');
+                return;
+            }
+
+            // Check NIP uniqueness
+            const existingUserByNip = dataUsers.find(u => u.nip === formData.nip && u.id !== editingUserId);
+            if (existingUserByNip) {
+                showNotification('NIP sudah digunakan oleh pengguna lain!', 'error');
+                return;
+            }
+
+            // Check email uniqueness if email is provided
+            if (formData.email) {
+                const existingUserByEmail = dataUsers.find(u => u.email === formData.email && u.id !== editingUserId);
+                if (existingUserByEmail) {
+                    showNotification('Email sudah digunakan oleh pengguna lain!', 'error');
+                    return;
+                }
+            }
+
+            if (editingUserId) {
+                // Update existing user
+                const userIndex = dataUsers.findIndex(u => u.id === editingUserId);
+                if (userIndex !== -1) {
+                    dataUsers[userIndex] = { ...dataUsers[userIndex], ...formData };
+                    showNotification('Data pengguna berhasil diperbarui!', 'success');
+                }
+            } else {
+                // Add new user with default password "123"
+                const newUser = {
+                    id: Date.now(),
+                    ...formData,
+                    password: '123', // Default password
+                    lastLogin: '-',
+                    createdAt: new Date().toISOString().split('T')[0]
+                };
+                dataUsers.push(newUser);
+                showNotification('Pengguna baru berhasil ditambahkan dengan password default: 123', 'success');
+            }
+
+            closeUserModal();
+            loadUserTable();
+        });
+
+        // Edit user function
+        function editUser(id) {
+            // Only administrators can edit users
+            if (currentUserRole !== 'Administrator') {
+                showNotification('Anda tidak memiliki izin untuk mengedit pengguna!', 'error');
+                return;
+            }
+            
+            // Prevent users from editing themselves
+            const currentUser = dataUsers.find(u => u.nama === document.getElementById('currentUser').textContent);
+            if (currentUser && id === currentUser.id) {
+                showNotification('Anda tidak dapat mengedit akun Anda sendiri!', 'error');
+                return;
+            }
+            
+            openUserModal(true, id);
+        }
+
+        // Delete user function
+        function deleteUser(id) {
+            // Only administrators can delete users
+            if (currentUserRole !== 'Administrator') {
+                showNotification('Anda tidak memiliki izin untuk menghapus pengguna!', 'error');
+                return;
+            }
+            
+            // Prevent users from deleting themselves
+            const currentUser = dataUsers.find(u => u.nama === document.getElementById('currentUser').textContent);
+            if (currentUser && id === currentUser.id) {
+                showNotification('Anda tidak dapat menghapus akun Anda sendiri!', 'error');
+                return;
+            }
+            
+            if (confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
+                dataUsers = dataUsers.filter(user => user.id !== id);
+                loadUserTable();
+                showNotification('Pengguna berhasil dihapus!', 'success');
+            }
+        }
+
+        // Search and filter users
+        document.getElementById('btnSearchUser').addEventListener('click', function() {
+            const searchTerm = document.getElementById('searchUser').value.toLowerCase();
+            const filterRole = document.getElementById('filterRole').value;
+
+            let filteredData = dataUsers.filter(user => {
+                let match = true;
+
+                if (searchTerm && !user.nama.toLowerCase().includes(searchTerm) && !user.nip.includes(searchTerm)) {
+                    match = false;
+                }
+
+                if (filterRole && user.role !== filterRole) {
+                    match = false;
+                }
+
+                return match;
+            });
+
+            loadUserTable(filteredData);
+
+            if (filteredData.length === 0) {
+                showNotification('Tidak ada data yang sesuai dengan filter', 'warning');
+            } else {
+                showNotification(`Menampilkan ${filteredData.length} pengguna`, 'success');
+            }
+        });
+
+        // Export users to Excel
+        document.getElementById('btnExportUser').addEventListener('click', function() {
+            if (currentDisplayedUsers.length === 0) {
+                showNotification('Tidak ada data untuk di-export', 'warning');
+                return;
+            }
+
+            const ws_data = [
+                ['No', 'Nama', 'NIP', 'Pangkat/Gol', 'Jabatan', 'Email', 'Role', 'Terakhir Login']
+            ];
+
+            currentDisplayedUsers.forEach((user, index) => {
+                ws_data.push([
+                    index + 1,
+                    user.nama,
+                    user.nip,
+                    user.pangkatGol,
+                    user.jabatan,
+                    user.email || '',
+                    user.role,
+                    formatDateTime(user.lastLogin)
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 5 },   // No
+                { wch: 25 },  // Nama
+                { wch: 20 },  // NIP
+                { wch: 20 },  // Pangkat/Gol
+                { wch: 25 },  // Jabatan
+                { wch: 30 },  // Email
+                { wch: 15 },  // Role
+                { wch: 20 }   // Terakhir Login
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data Pengguna");
+
+            XLSX.writeFile(wb, 'data-pengguna.xlsx');
+            showNotification(`Excel berhasil di-export dengan ${currentDisplayedUsers.length} data`, 'success');
+        });
+
+        // Download template Excel
+        document.getElementById('downloadTemplate').addEventListener('click', function() {
+            const templateData = [
+                ['Nama', 'NIP', 'Pangkat/Gol', 'Jabatan', 'Email', 'Role'],
+                ['John Doe', '196801011990031001', 'Penata / III.c', 'Staff Administrasi', 'john.doe@example.com', 'User'],
+                ['Jane Smith', '197205151995032002', 'Penata Muda / III.a', 'Bendahara', 'jane.smith@example.com', 'Operator']
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 25 },  // Nama
+                { wch: 20 },  // NIP
+                { wch: 20 },  // Pangkat/Gol
+                { wch: 25 },  // Jabatan
+                { wch: 30 },  // Email
+                { wch: 15 }   // Role
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+
+            XLSX.writeFile(wb, 'template-import-pengguna.xlsx');
+            showNotification('Template Excel berhasil didownload!', 'success');
+        });
+
+        // Import Excel functionality
+        document.getElementById('selectFileBtn').addEventListener('click', function() {
+            document.getElementById('excelFile').click();
+        });
+
+        document.getElementById('excelFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('selectedFileName').textContent = `File terpilih: ${file.name}`;
+                document.getElementById('selectedFileName').classList.remove('hidden');
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                        if (jsonData.length < 2) {
+                            showNotification('File Excel kosong atau tidak valid!', 'error');
+                            return;
+                        }
+
+                        const headers = jsonData[0];
+                        const rows = jsonData.slice(1);
+
+                        // Validate headers
+                        const requiredHeaders = ['Nama', 'NIP', 'Pangkat/Gol', 'Jabatan', 'Role'];
+                        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+                        if (missingHeaders.length > 0) {
+                            showNotification(`Header yang hilang: ${missingHeaders.join(', ')}`, 'error');
+                            return;
+                        }
+
+                        // Process data
+                        importedData = rows.filter(row => row.length > 0 && row[0]).map(row => {
+                            const obj = {};
+                            headers.forEach((header, index) => {
+                                obj[header] = row[index] || '';
+                            });
+                            return obj;
+                        });
+
+                        // Show preview
+                        showImportPreview(headers, importedData.slice(0, 5));
+                        document.getElementById('totalImportRows').textContent = importedData.length;
+                        document.getElementById('processImport').disabled = false;
+
+                    } catch (error) {
+                        showNotification('Error membaca file Excel!', 'error');
+                        console.error(error);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        function showImportPreview(headers, previewData) {
+            const previewSection = document.getElementById('previewSection');
+            const previewHeader = document.getElementById('previewHeader');
+            const previewBody = document.getElementById('previewBody');
+
+            // Clear previous data
+            previewHeader.innerHTML = '';
+            previewBody.innerHTML = '';
+
+            // Add headers
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.className = 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = header;
+                previewHeader.appendChild(th);
+            });
+
+            // Add preview rows
+            previewData.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.className = 'px-4 py-3 text-sm text-gray-900';
+                    td.textContent = row[header] || '';
+                    tr.appendChild(td);
+                });
+                previewBody.appendChild(tr);
+            });
+
+            previewSection.classList.remove('hidden');
+        }
+
+        // Process import
+        document.getElementById('processImport').addEventListener('click', function() {
+            if (importedData.length === 0) {
+                showNotification('Tidak ada data untuk diimport!', 'warning');
+                return;
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            importedData.forEach((row, index) => {
+                try {
+                    // Validate required fields
+                    if (!row.Nama || !row.NIP || !row['Pangkat/Gol'] || !row.Jabatan || !row.Role) {
+                        errors.push(`Baris ${index + 2}: Data wajib tidak lengkap`);
+                        errorCount++;
+                        return;
+                    }
+
+                    // Validate NIP format (18 digits)
+                    if (!/^\d{18}$/.test(row.NIP)) {
+                        errors.push(`Baris ${index + 2}: NIP harus 18 digit angka`);
+                        errorCount++;
+                        return;
+                    }
+
+                    // Check NIP uniqueness
+                    const existingUserByNip = dataUsers.find(u => u.nip === row.NIP);
+                    if (existingUserByNip) {
+                        errors.push(`Baris ${index + 2}: NIP ${row.NIP} sudah ada`);
+                        errorCount++;
+                        return;
+                    }
+
+                    // Check email uniqueness if email is provided
+                    if (row.Email) {
+                        const existingUserByEmail = dataUsers.find(u => u.email === row.Email);
+                        if (existingUserByEmail) {
+                            errors.push(`Baris ${index + 2}: Email ${row.Email} sudah ada`);
+                            errorCount++;
+                            return;
+                        }
+                    }
+
+                    // Validate role
+                    const validRoles = ['Administrator', 'Operator', 'User'];
+                    if (!validRoles.includes(row.Role)) {
+                        errors.push(`Baris ${index + 2}: Role tidak valid (${row.Role})`);
+                        errorCount++;
+                        return;
+                    }
+
+                    // Add user with default password "123"
+                    const newUser = {
+                        id: Date.now() + index,
+                        nama: row.Nama,
+                        nip: row.NIP,
+                        pangkatGol: row['Pangkat/Gol'],
+                        jabatan: row.Jabatan,
+                        email: row.Email || '',
+                        role: row.Role,
+                        password: '123', // Default password
+                        lastLogin: '-',
+                        createdAt: new Date().toISOString().split('T')[0]
+                    };
+
+                    dataUsers.push(newUser);
+                    successCount++;
+
+                } catch (error) {
+                    errors.push(`Baris ${index + 2}: Error tidak diketahui`);
+                    errorCount++;
+                }
+            });
+
+            // Show results
+            if (successCount > 0) {
+                showNotification(`Berhasil import ${successCount} pengguna!`, 'success');
+                loadUserTable();
+            }
+
+            if (errorCount > 0) {
+                console.log('Import errors:', errors);
+                showNotification(`${errorCount} data gagal diimport. Periksa console untuk detail.`, 'warning');
+            }
+
+            closeImportModal();
+        });
+
+        // Modal event listeners
+        document.getElementById('btnTambahUser').addEventListener('click', () => openUserModal());
+        document.getElementById('btnImportUser').addEventListener('click', () => {
+            document.getElementById('importModal').classList.remove('hidden');
+        });
+
+        document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
+        document.getElementById('cancelUserForm').addEventListener('click', closeUserModal);
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+            document.getElementById('excelFile').value = '';
+            document.getElementById('selectedFileName').classList.add('hidden');
+            document.getElementById('previewSection').classList.add('hidden');
+            document.getElementById('processImport').disabled = true;
+            importedData = [];
+        }
+
+        document.getElementById('closeImportModal').addEventListener('click', closeImportModal);
+        document.getElementById('cancelImport').addEventListener('click', closeImportModal);
+
+        // ===== LAPORAN FUNCTIONS =====
+
+        // Variables for charts
+        let trendChart = null;
+        let kategoriChart = null;
+        let harianChart = null;
+        let currentLaporanData = [];
+
+        // Initialize laporan section
+        function initializeLaporan() {
+            // Set default period to current month
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+            document.getElementById('laporanTanggalDari').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('laporanTanggalSampai').value = lastDay.toISOString().split('T')[0];
+
+            // Generate initial report
+            generateLaporan();
+        }
+
+        // Period change handler
+        document.getElementById('laporanPeriode').addEventListener('change', function() {
+            const periode = this.value;
+            const customDateFrom = document.getElementById('customDateFrom');
+            const customDateTo = document.getElementById('customDateTo');
+
+            if (periode === 'custom') {
+                customDateFrom.classList.remove('hidden');
+                customDateTo.classList.remove('hidden');
+            } else {
+                customDateFrom.classList.add('hidden');
+                customDateTo.classList.add('hidden');
+
+                const today = new Date();
+                let startDate, endDate;
+
+                switch(periode) {
+                    case 'bulan-ini':
+                        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                        break;
+                    case '3-bulan':
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+                        endDate = today;
+                        break;
+                    case '6-bulan':
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+                        endDate = today;
+                        break;
+                    case 'tahun-ini':
+                        startDate = new Date(today.getFullYear(), 0, 1);
+                        endDate = today;
+                        break;
+                }
+
+                document.getElementById('laporanTanggalDari').value = startDate.toISOString().split('T')[0];
+                document.getElementById('laporanTanggalSampai').value = endDate.toISOString().split('T')[0];
+            }
+        });
+
+        // Generate laporan button
+        document.getElementById('btnGenerateLaporan').addEventListener('click', generateLaporan);
+
+        // Generate laporan function
+        function generateLaporan() {
+            const periode = document.getElementById('laporanPeriode').value;
+            const kategoriFilter = document.getElementById('laporanKategori').value;
+            const tanggalDari = document.getElementById('laporanTanggalDari').value;
+            const tanggalSampai = document.getElementById('laporanTanggalSampai').value;
+
+            if (!tanggalDari || !tanggalSampai) {
+                showNotification('Pilih periode tanggal terlebih dahulu!', 'warning');
+                return;
+            }
+
+            // Filter data berdasarkan periode dan kategori
+            currentLaporanData = dataSurat.filter(surat => {
+                const suratDate = new Date(surat.tanggal);
+                const startDate = new Date(tanggalDari);
+                const endDate = new Date(tanggalSampai);
+
+                let match = suratDate >= startDate && suratDate <= endDate;
+
+                if (kategoriFilter && surat.kategori !== kategoriFilter) {
+                    match = false;
+                }
+
+                return match;
+            });
+
+            // Update statistik overview
+            updateLaporanStats();
+
+            // Generate charts
+            generateTrendChart();
+            generateKategoriChart();
+            generateHarianChart();
+
+            // Update top pembuat
+            updateTopPembuat();
+
+            showNotification(`Laporan berhasil di-generate dengan ${currentLaporanData.length} data`, 'success');
+        }
+
+        // Update laporan statistics
+        function updateLaporanStats() {
+            const totalSurat = currentLaporanData.length;
+            document.getElementById('laporanTotalSurat').textContent = totalSurat;
+
+            // Calculate average per month
+            if (totalSurat > 0) {
+                const tanggalDari = new Date(document.getElementById('laporanTanggalDari').value);
+                const tanggalSampai = new Date(document.getElementById('laporanTanggalSampai').value);
+                const monthsDiff = Math.max(1, Math.ceil((tanggalSampai - tanggalDari) / (1000 * 60 * 60 * 24 * 30)));
+                const avgPerMonth = Math.round(totalSurat / monthsDiff);
+                document.getElementById('laporanRataRata').textContent = avgPerMonth;
+            } else {
+                document.getElementById('laporanRataRata').textContent = '0';
+            }
+
+            // Find top category
+            const kategoriCount = {};
+            currentLaporanData.forEach(surat => {
+                kategoriCount[surat.kategori] = (kategoriCount[surat.kategori] || 0) + 1;
+            });
+
+            const topKategori = Object.entries(kategoriCount).sort((a, b) => b[1] - a[1])[0];
+            if (topKategori) {
+                const kategoriName = kategoriData[topKategori[0]]?.name || topKategori[0];
+                document.getElementById('laporanKategoriTop').textContent = `${topKategori[0]} (${topKategori[1]})`;
+            } else {
+                document.getElementById('laporanKategoriTop').textContent = '-';
+            }
+
+            // Find top month
+            const monthCount = {};
+            currentLaporanData.forEach(surat => {
+                const month = new Date(surat.tanggal).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                monthCount[month] = (monthCount[month] || 0) + 1;
+            });
+
+            const topMonth = Object.entries(monthCount).sort((a, b) => b[1] - a[1])[0];
+            if (topMonth) {
+                document.getElementById('laporanBulanTop').textContent = `${topMonth[0]} (${topMonth[1]})`;
+            } else {
+                document.getElementById('laporanBulanTop').textContent = '-';
+            }
+        }
+
+        // Generate trend chart
+        function generateTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+
+            if (trendChart) {
+                trendChart.destroy();
+            }
+
+            // Group data by month
+            const monthlyData = {};
+            currentLaporanData.forEach(surat => {
+                const monthKey = new Date(surat.tanggal).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+            });
+
+            const labels = Object.keys(monthlyData).sort((a, b) => {
+                const dateA = new Date(a.split(' ')[1], getMonthNumber(a.split(' ')[0]));
+                const dateB = new Date(b.split(' ')[1], getMonthNumber(b.split(' ')[0]));
+                return dateA - dateB;
+            });
+
+            const data = labels.map(label => monthlyData[label]);
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Surat',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Generate kategori chart
+        function generateKategoriChart() {
+            const ctx = document.getElementById('kategoriChart').getContext('2d');
+
+            if (kategoriChart) {
+                kategoriChart.destroy();
+            }
+
+            // Group data by category
+            const kategoriCount = {};
+            currentLaporanData.forEach(surat => {
+                const kategoriName = kategoriData[surat.kategori]?.name || surat.kategori;
+                kategoriCount[kategoriName] = (kategoriCount[kategoriName] || 0) + 1;
+            });
+
+            const labels = Object.keys(kategoriCount);
+            const data = Object.values(kategoriCount);
+            const colors = [
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(16, 185, 129, 0.8)',
+                'rgba(139, 92, 246, 0.8)',
+                'rgba(245, 158, 11, 0.8)',
+                'rgba(239, 68, 68, 0.8)'
+            ];
+
+            kategoriChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Generate harian chart
+        function generateHarianChart() {
+            const ctx = document.getElementById('harianChart').getContext('2d');
+
+            if (harianChart) {
+                harianChart.destroy();
+            }
+
+            // Group data by day of week
+            const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const dayCount = new Array(7).fill(0);
+
+            currentLaporanData.forEach(surat => {
+                const dayOfWeek = new Date(surat.tanggal).getDay();
+                dayCount[dayOfWeek]++;
+            });
+
+            harianChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dayNames,
+                    datasets: [{
+                        label: 'Jumlah Surat',
+                        data: dayCount,
+                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                        borderColor: 'rgba(245, 158, 11, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update top pembuat
+        function updateTopPembuat() {
+            const pembuatCount = {};
+            currentLaporanData.forEach(surat => {
+                pembuatCount[surat.pembuat] = (pembuatCount[surat.pembuat] || 0) + 1;
+            });
+
+            const sortedPembuat = Object.entries(pembuatCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const topPembuatList = document.getElementById('topPembuatList');
+            topPembuatList.innerHTML = '';
+
+            if (sortedPembuat.length === 0) {
+                topPembuatList.innerHTML = '<p class="text-gray-500 text-center">Tidak ada data</p>';
+                return;
+            }
+
+            sortedPembuat.forEach((pembuat, index) => {
+                const percentage = Math.round((pembuat[1] / currentLaporanData.length) * 100);
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-800">${pembuat[0]}</p>
+                            <p class="text-sm text-gray-600">${pembuat[1]} surat</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-green-600">${percentage}%</p>
+                    </div>
+                `;
+                topPembuatList.appendChild(item);
+            });
+        }
+
+        // Helper function to get month number
+        function getMonthNumber(monthName) {
+            const months = {
+                'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'Mei': 4, 'Jun': 5,
+                'Jul': 6, 'Agu': 7, 'Sep': 8, 'Okt': 9, 'Nov': 10, 'Des': 11
+            };
+            return months[monthName] || 0;
+        }
+
+        // Export laporan PDF
+        document.getElementById('exportLaporanPDF').addEventListener('click', function() {
+            if (currentLaporanData.length === 0) {
+                showNotification('Generate laporan terlebih dahulu!', 'warning');
+                return;
+            }
+
+            generateLaporanPDF();
+        });
+
+        // Export laporan Excel
+        document.getElementById('exportLaporanExcel').addEventListener('click', function() {
+            if (currentLaporanData.length === 0) {
+                showNotification('Generate laporan terlebih dahulu!', 'warning');
+                return;
+            }
+
+            generateLaporanExcel();
+        });
+
+        // Print laporan
+        document.getElementById('printLaporan').addEventListener('click', function() {
+            if (currentLaporanData.length === 0) {
+                showNotification('Generate laporan terlebih dahulu!', 'warning');
+                return;
+            }
+
+            printLaporan();
+        });
+
+        // Generate laporan PDF
+        function generateLaporanPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header
+            doc.setFontSize(18);
+            doc.text('LAPORAN SURAT KELUAR', 20, 20);
+
+            // Period info
+            doc.setFontSize(12);
+            const tanggalDari = document.getElementById('laporanTanggalDari').value;
+            const tanggalSampai = document.getElementById('laporanTanggalSampai').value;
+            doc.text(`Periode: ${formatTanggal(tanggalDari)} - ${formatTanggal(tanggalSampai)}`, 20, 35);
+
+            // Statistics
+            doc.setFontSize(14);
+            doc.text('STATISTIK OVERVIEW', 20, 55);
+
+            doc.setFontSize(10);
+            const totalSurat = document.getElementById('laporanTotalSurat').textContent;
+            const rataRata = document.getElementById('laporanRataRata').textContent;
+            const kategoriTop = document.getElementById('laporanKategoriTop').textContent;
+            const bulanTop = document.getElementById('laporanBulanTop').textContent;
+
+            doc.text(`Total Surat: ${totalSurat}`, 20, 70);
+            doc.text(`Rata-rata per Bulan: ${rataRata}`, 20, 80);
+            doc.text(`Kategori Terbanyak: ${kategoriTop}`, 20, 90);
+            doc.text(`Bulan Tertinggi: ${bulanTop}`, 20, 100);
+
+            // Data table
+            doc.setFontSize(12);
+            doc.text('DETAIL SURAT', 20, 120);
+
+            const tableData = [
+                ['No', 'Nomor Surat', 'Tanggal', 'Tujuan', 'Pembuat']
+            ];
+
+            currentLaporanData.forEach((surat, index) => {
+                tableData.push([
+                    (index + 1).toString(),
+                    surat.nomor,
+                    formatTanggal(surat.tanggal),
+                    surat.tujuan.substring(0, 30) + (surat.tujuan.length > 30 ? '...' : ''),
+                    surat.pembuat
+                ]);
+            });
+
+            // Simple table implementation
+            let y = 135;
+            doc.setFontSize(8);
+
+            tableData.forEach((row, index) => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+
+                if (index === 0) {
+                    doc.setFont(undefined, 'bold');
+                } else {
+                    doc.setFont(undefined, 'normal');
+                }
+
+                doc.text(row[0], 20, y);
+                doc.text(row[1], 35, y);
+                doc.text(row[2], 80, y);
+                doc.text(row[3], 110, y);
+                doc.text(row[4], 160, y);
+
+                y += 8;
+            });
+
+            doc.save(`laporan-surat-keluar-${tanggalDari}-${tanggalSampai}.pdf`);
+            showNotification('Laporan PDF berhasil di-export!', 'success');
+        }
+
+        // Generate laporan Excel
+        function generateLaporanExcel() {
+            const tanggalDari = document.getElementById('laporanTanggalDari').value;
+            const tanggalSampai = document.getElementById('laporanTanggalSampai').value;
+
+            // Statistics sheet
+            const statsData = [
+                ['LAPORAN SURAT KELUAR'],
+                [`Periode: ${formatTanggal(tanggalDari)} - ${formatTanggal(tanggalSampai)}`],
+                [''],
+                ['STATISTIK OVERVIEW'],
+                ['Total Surat', document.getElementById('laporanTotalSurat').textContent],
+                ['Rata-rata per Bulan', document.getElementById('laporanRataRata').textContent],
+                ['Kategori Terbanyak', document.getElementById('laporanKategoriTop').textContent],
+                ['Bulan Tertinggi', document.getElementById('laporanBulanTop').textContent],
+                [''],
+                ['DETAIL SURAT'],
+                ['No', 'Nomor Surat', 'Tanggal', 'Tujuan', 'Perihal', 'Pembuat']
+            ];
+
+            currentLaporanData.forEach((surat, index) => {
+                statsData.push([
+                    index + 1,
+                    surat.nomor,
+                    formatTanggal(surat.tanggal),
+                    surat.tujuan,
+                    surat.perihal,
+                    surat.pembuat
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(statsData);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 5 },   // No
+                { wch: 25 },  // Nomor Surat
+                { wch: 15 },  // Tanggal
+                { wch: 30 },  // Tujuan
+                { wch: 40 },  // Perihal
+                { wch: 20 }   // Pembuat
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+
+            XLSX.writeFile(wb, `laporan-surat-keluar-${tanggalDari}-${tanggalSampai}.xlsx`);
+            showNotification('Laporan Excel berhasil di-export!', 'success');
+        }
+
+        // Print laporan
+        function printLaporan() {
+            const printWindow = window.open('', '_blank');
+            const tanggalDari = document.getElementById('laporanTanggalDari').value;
+            const tanggalSampai = document.getElementById('laporanTanggalSampai').value;
+
+            let printContent = `
+                <html>
+                <head>
+                    <title>Laporan Surat Keluar</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .stats { margin-bottom: 30px; }
+                        .stats table { width: 100%; border-collapse: collapse; }
+                        .stats td { padding: 8px; border: 1px solid #ddd; }
+                        .data-table { width: 100%; border-collapse: collapse; }
+                        .data-table th, .data-table td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+                        .data-table th { background-color: #f5f5f5; }
+                        @media print { body { margin: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>LAPORAN SURAT KELUAR</h2>
+                        <p>Periode: ${formatTanggal(tanggalDari)} - ${formatTanggal(tanggalSampai)}</p>
+                    </div>
+
+                    <div class="stats">
+                        <h3>Statistik Overview</h3>
+                        <table>
+                            <tr><td><strong>Total Surat</strong></td><td>${document.getElementById('laporanTotalSurat').textContent}</td></tr>
+                            <tr><td><strong>Rata-rata per Bulan</strong></td><td>${document.getElementById('laporanRataRata').textContent}</td></tr>
+                            <tr><td><strong>Kategori Terbanyak</strong></td><td>${document.getElementById('laporanKategoriTop').textContent}</td></tr>
+                            <tr><td><strong>Bulan Tertinggi</strong></td><td>${document.getElementById('laporanBulanTop').textContent}</td></tr>
+                        </table>
+                    </div>
+
+                    <h3>Detail Surat</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nomor Surat</th>
+                                <th>Tanggal</th>
+                                <th>Tujuan</th>
+                                <th>Perihal</th>
+                                <th>Pembuat</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            currentLaporanData.forEach((surat, index) => {
+                printContent += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${surat.nomor}</td>
+                        <td>${formatTanggal(surat.tanggal)}</td>
+                        <td>${surat.tujuan}</td>
+                        <td>${surat.perihal}</td>
+                        <td>${surat.pembuat}</td>
+                    </tr>
+                `;
+            });
+
+            printContent += `
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+
+            showNotification('Laporan siap untuk di-print!', 'success');
+        }
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nip = document.getElementById('nipInput').value;
+            const password = document.getElementById('passwordInput').value;
+            
+            // Simple validation
+            if (!nip || !password) {
+                showNotification('Harap isi semua field!', 'error');
+                return;
+            }
+            
+            // Find user by NIP
+            const user = dataUsers.find(u => u.nip === nip);
+            
+            if (!user) {
+                showNotification('NIP tidak ditemukan!', 'error');
+                return;
+            }
+            
+            // Check password (in real app, this should be properly hashed)
+            if (password !== user.password && password !== '123') {
+                showNotification('Password salah!', 'error');
+                return;
+            }
+            
+            // Set current user role
+            currentUserRole = user.role;
+            
+            // Successful login
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.querySelector('.md\\:ml-72').classList.remove('hidden');
+            
+            // Update current user display
+            document.getElementById('currentUser').textContent = user.nama;
+            document.querySelectorAll('#currentUser').forEach(el => {
+                el.textContent = user.nama;
+            });
+            
+            // Apply role-based access control
+            applyRoleBasedAccess(user.role);
+            
+            // Filter data based on user role
+            filterDataByRole(user);
+            
+            // Show dashboard
+            showSection('dashboard');
+            
+            // Show welcome notification
+            showNotification(`Selamat datang, ${user.nama}!`, 'success');
+        })
+        
+        // Role-based access control
+        function applyRoleBasedAccess(role) {
+            // Define permissions for each role
+            const permissions = {
+                'Administrator': {
+                    canViewDashboard: true,
+                    canCreateSurat: true,
+                    canViewAllSurat: true,
+                    canEditSurat: true,
+                    canDeleteSurat: true,
+                    canViewReports: true,
+                    canManageUsers: true,
+                    canAccessSettings: true
+                },
+                'Operator': {
+                    canViewDashboard: true,
+                    canCreateSurat: true,
+                    canViewAllSurat: true,
+                    canEditSurat: true,
+                    canDeleteSurat: true,
+                    canViewReports: true,
+                    canManageUsers: false,
+                    canAccessSettings: true
+                },
+                'User': {
+                    canViewDashboard: true,
+                    canCreateSurat: false,
+                    canViewAllSurat: true,
+                    canEditSurat: false,
+                    canDeleteSurat: false,
+                    canViewReports: true,
+                    canManageUsers: false,
+                    canAccessSettings: false
+                }
+            };
+            
+            // Get permissions for current role
+            const userPermissions = permissions[role] || permissions['User'];
+            
+            // Hide all menu items by default
+            const menuItems = document.querySelectorAll('.sidebar-menu-item');
+            menuItems.forEach(item => {
+                item.style.display = 'none';
+            });
+            
+            // Show menu items based on permissions
+            if (userPermissions.canViewDashboard) {
+                document.getElementById('menuDashboard').style.display = 'flex';
+            }
+            if (userPermissions.canCreateSurat) {
+                document.getElementById('menuInput').style.display = 'flex';
+            }
+            if (userPermissions.canViewAllSurat) {
+                document.getElementById('menuData').style.display = 'flex';
+            }
+            if (userPermissions.canViewReports) {
+                document.getElementById('menuLaporan').style.display = 'flex';
+            }
+            if (userPermissions.canManageUsers) {
+                document.getElementById('menuUser').style.display = 'flex';
+            }
+            if (userPermissions.canAccessSettings) {
+                document.getElementById('menuPengaturan').style.display = 'flex';
+            }
+        }
+        
+        // Filter data based on user role
+        function filterDataByRole(user) {
+            // For now, we'll implement basic filtering
+            // In a real application, this would be done server-side
+            
+            // Update global data references based on role if needed
+            switch(user.role) {
+                case 'Administrator':
+                    // Admin sees all data
+                    break;
+                case 'Operator':
+                    // Operator sees all data (in this simplified example)
+                    break;
+                case 'User':
+                    // Regular user might see only their own data
+                    // For this example, we'll still show all data but limit actions
+                    break;
+            }
+            
+            // Update user management buttons based on role
+            updateUserManagementAccess(user.role);
+        }
+        
+        // Update user management access based on role
+        function updateUserManagementAccess(role) {
+            const userActionButtons = document.getElementById('userActionButtons');
+            
+            if (role !== 'Administrator') {
+                // Hide user management buttons for non-administrators
+                userActionButtons.innerHTML = `
+                    <div class="text-center text-gray-500 w-full">
+                        <p>Hanya administrator yang dapat mengelola pengguna</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Settings functionality
+        function initializeSettings() {
+            // Load saved settings from localStorage if available
+            const savedSettings = localStorage.getItem('suratKuSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                
+                // Load system configuration
+                if (settings.organisasiName) document.getElementById('organisasiName').value = settings.organisasiName;
+                if (settings.adminEmail) document.getElementById('adminEmail').value = settings.adminEmail;
+                if (settings.timezone) document.getElementById('timezone').value = settings.timezone;
+                
+                // Load user preferences
+                if (settings.emailNotifications !== undefined) document.getElementById('emailNotifications').checked = settings.emailNotifications;
+                if (settings.darkMode !== undefined) document.getElementById('darkMode').checked = settings.darkMode;
+                if (settings.language) document.getElementById('language').value = settings.language;
+            }
+            
+            // Add event listeners
+            document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+            document.getElementById('changePasswordBtn').addEventListener('click', changePassword);
+        }
+        
+        // Save settings
+        function saveSettings() {
+            const settings = {
+                organisasiName: document.getElementById('organisasiName').value,
+                adminEmail: document.getElementById('adminEmail').value,
+                timezone: document.getElementById('timezone').value,
+                emailNotifications: document.getElementById('emailNotifications').checked,
+                darkMode: document.getElementById('darkMode').checked,
+                language: document.getElementById('language').value
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('suratKuSettings', JSON.stringify(settings));
+            
+            // Apply dark mode if enabled
+            if (settings.darkMode) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+            
+            showNotification('Pengaturan berhasil disimpan!', 'success');
+        }
+        
+        // Change password function
+        function changePassword() {
+            // In a real application, this would open a modal or navigate to a password change page
+            showNotification('Fitur ubah password akan dikembangkan di versi berikutnya', 'info');
+        }
+        
+        // Logout functionality\n        document.getElementById('logoutBtn').addEventListener('click', function() {\n            if (confirm('Apakah Anda yakin ingin keluar?')) {\n                // Hide dashboard and show login\n                document.getElementById('sidebar').classList.add('hidden');\n                document.querySelector('.md\\\\:ml-72').classList.add('hidden');\n                document.getElementById('loginSection').classList.remove('hidden');\n                \n                // Reset login form\n                document.getElementById('loginForm').reset();\n                \n                // Reset menu visibility\n                const menuItems = document.querySelectorAll('.sidebar-menu-item');\n                menuItems.forEach(item => {\n                    item.style.display = 'flex';\n                });\n                \n                // Reset current user role\n                currentUserRole = null;\n                \n                showNotification('Anda telah berhasil keluar', 'info');\n            }\n        });
+        
+        // Initialize - check if user is already logged in (simplified)
+        // In a real app, you would check for a session token or cookie
+        updateNomorSurat();
+        updateDashboardStats();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97c34ea520a99c74',t:'MTc1NzM4NTQ4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
