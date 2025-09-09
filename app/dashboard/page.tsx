@@ -55,31 +55,6 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header with User Info and Logout */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Selamat datang kembali, {currentUser?.nama || 'User'}</p>
-        </div>
-        <div className="mt-4 md:mt-0 flex items-center space-x-4">
-          <div className="flex items-center space-x-3 bg-white rounded-xl px-4 py-2 shadow-sm border border-gray-200">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-              {currentUser?.nama?.charAt(0) || 'U'}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-800">{currentUser?.nama || 'User'}</p>
-              <p className="text-xs text-gray-500">{currentUser?.jabatan || 'Pengguna'}</p>
-            </div>
-          </div>
-          <button 
-            onClick={logout}
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-xl font-medium flex items-center transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            <i className="fas fa-sign-out-alt mr-2"></i>Logout
-          </button>
-        </div>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="group bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-blue-400/20">
