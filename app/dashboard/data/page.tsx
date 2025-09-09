@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
-import Swal from 'sweetalert2';
+import { showSuccessToast, showErrorToast, showWarningToast, showConfirmationDialog } from '@/lib/sweetalert-utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -56,12 +56,7 @@ export default function DataSuratPage() {
 
   const handleExportPDF = () => {
     if (dataSurat.length === 0) {
-      Swal.fire({
-        title: 'Tidak ada data',
-        text: 'Tidak ada data surat untuk di-export',
-        icon: 'warning',
-        confirmButtonText: 'OK'
-      });
+      showWarningToast('Tidak ada data surat untuk di-export');
       return;
     }
 
@@ -103,22 +98,12 @@ export default function DataSuratPage() {
     // Save the PDF
     doc.save(`laporan-surat-keluar-${today}.pdf`);
     
-    Swal.fire({
-      title: 'Berhasil!',
-      text: 'Data surat berhasil di-export ke PDF',
-      icon: 'success',
-      confirmButtonText: 'OK'
-    });
+    showSuccessToast('Data surat berhasil di-export ke PDF');
   };
 
   const handleExportExcel = () => {
     if (dataSurat.length === 0) {
-      Swal.fire({
-        title: 'Tidak ada data',
-        text: 'Tidak ada data surat untuk di-export',
-        icon: 'warning',
-        confirmButtonText: 'OK'
-      });
+      showWarningToast('Tidak ada data surat untuk di-export');
       return;
     }
 
@@ -162,12 +147,7 @@ export default function DataSuratPage() {
     // Export to Excel
     XLSX.writeFile(wb, filename);
     
-    Swal.fire({
-      title: 'Berhasil!',
-      text: 'Data surat berhasil di-export ke Excel',
-      icon: 'success',
-      confirmButtonText: 'OK'
-    });
+    showSuccessToast('Data surat berhasil di-export ke Excel');
   };
 
   const handleEdit = (suratItem: any) => {
@@ -177,13 +157,9 @@ export default function DataSuratPage() {
   };
 
   const handleDelete = (id: number) => {
-    Swal.fire({
+    showConfirmationDialog({
       title: 'Apakah Anda yakin?',
       text: 'Data surat yang dihapus tidak dapat dikembalikan!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
       confirmButtonText: 'Ya, hapus!',
       cancelButtonText: 'Batal'
     }).then(async (result) => {
@@ -203,20 +179,10 @@ export default function DataSuratPage() {
           // Delete surat in context
           await deleteSurat(id);
           
-          Swal.fire({
-            title: 'Terhapus!',
-            text: 'Surat berhasil dihapus.',
-            icon: 'success',
-            confirmButtonText: 'OK'
-          });
+          showSuccessToast('Surat berhasil dihapus.');
         } catch (error) {
           console.error('Error deleting surat:', error);
-          Swal.fire({
-            title: 'Error!',
-            text: `Gagal menghapus surat: ${error.message}`,
-            icon: 'error',
-            confirmButtonText: 'OK'
-          });
+          showErrorToast(`Gagal menghapus surat: ${error.message}`);
         }
       }
     });
@@ -248,20 +214,10 @@ export default function DataSuratPage() {
       // Update surat in context
       await updateSurat(editingSurat.id, updatedSurat);
       
-      Swal.fire({
-        title: 'Berhasil!',
-        text: 'Data surat berhasil diperbarui.',
-        icon: 'success',
-        confirmButtonText: 'OK'
-      });
+      showSuccessToast('Data surat berhasil diperbarui.');
     } catch (error) {
       console.error('Error updating surat:', error);
-      Swal.fire({
-        title: 'Error!',
-        text: `Gagal memperbarui surat: ${error.message}`,
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
+      showErrorToast(`Gagal memperbarui surat: ${error.message}`);
     }
     
     setShowEditModal(false);

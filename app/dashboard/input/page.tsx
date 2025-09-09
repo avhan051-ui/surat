@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
-import Swal from 'sweetalert2';
+import { showSuccessToast, showErrorToast, showWarningToast } from '@/lib/sweetalert-utils';
 
 export default function InputSuratPage() {
   const { kategoriData, users, addSurat, surat } = useAppContext();
@@ -113,23 +113,13 @@ export default function InputSuratPage() {
     
     // Validate pembuat surat
     if (!pembuatSurat) {
-      Swal.fire({
-        title: 'Validasi Gagal',
-        text: 'Pilih pembuat surat terlebih dahulu!',
-        icon: 'warning',
-        confirmButtonText: 'OK'
-      });
+      showWarningToast('Pilih pembuat surat terlebih dahulu!');
       return;
     }
 
     const selectedUser = users.find(user => user.id == parseInt(pembuatSurat));
     if (!selectedUser) {
-      Swal.fire({
-        title: 'Validasi Gagal',
-        text: 'Pembuat surat tidak valid!',
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
+      showErrorToast('Pembuat surat tidak valid!');
       return;
     }
 
@@ -169,20 +159,10 @@ export default function InputSuratPage() {
       // Add surat to context for immediate UI update
       await addSurat(savedSurat);
       
-      Swal.fire({
-        title: 'Berhasil!',
-        text: 'Surat berhasil disimpan!',
-        icon: 'success',
-        confirmButtonText: 'OK'
-      });
+      showSuccessToast('Surat berhasil disimpan!');
     } catch (error) {
       console.error('Error saving surat:', error);
-      Swal.fire({
-        title: 'Error!',
-        text: `Gagal menyimpan surat: ${error.message}`,
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
+      showErrorToast('Gagal menyimpan surat: ' + error.message);
     }
     
     // Reset form
