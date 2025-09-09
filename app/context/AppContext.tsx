@@ -281,17 +281,62 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addSurat = (newSurat: Surat) => {
-    setSurat(prev => [...prev, newSurat]);
+    setSurat(prev => {
+      const updatedSurat = [...prev, newSurat];
+      // Update all nomor urut after adding new surat
+      return updateAllNomorUrut(updatedSurat);
+    });
     // In a real implementation, you would also save to PostgreSQL
   };
 
+  // Fungsi untuk memperbarui nomor urut semua surat berdasarkan kategori utama
+  const updateAllNomorUrut = (suratList: Surat[]) => {
+    // Kelompokkan surat berdasarkan kategori utama
+    const kategoriGroups: { [key: string]: Surat[] } = {};
+    suratList.forEach(suratItem => {
+      if (!kategoriGroups[suratItem.kategori]) {
+        kategoriGroups[suratItem.kategori] = [];
+      }
+      kategoriGroups[suratItem.kategori].push(suratItem);
+    });
+
+    // Update nomor urut untuk setiap kategori
+    Object.keys(kategoriGroups).forEach(kategori => {
+      // Urutkan berdasarkan tanggal untuk konsistensi
+      kategoriGroups[kategori].sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+
+      // Update nomor urut
+      kategoriGroups[kategori].forEach((suratItem, index) => {
+        const tahun = new Date(suratItem.tanggal).getFullYear();
+        const nomorBaru = String(index + 1).padStart(3, '0');
+        suratItem.nomor = `${suratItem.fullKategori}/${nomorBaru}/${tahun}`;
+      });
+    });
+
+    // Flatten the groups back into a single array
+    const updatedSurat: Surat[] = [];
+    Object.values(kategoriGroups).forEach(group => {
+      updatedSurat.push(...group);
+    });
+
+    return updatedSurat;
+  };
+
   const updateSurat = (id: number, updatedSurat: Surat) => {
-    setSurat(prev => prev.map(s => s.id === id ? updatedSurat : s));
+    setSurat(prev => {
+      const updatedList = prev.map(s => s.id === id ? updatedSurat : s);
+      // Update all nomor urut after updating a surat
+      return updateAllNomorUrut(updatedList);
+    });
     // In a real implementation, you would also update in PostgreSQL
   };
 
   const deleteSurat = (id: number) => {
-    setSurat(prev => prev.filter(s => s.id !== id));
+    setSurat(prev => {
+      const filteredSurat = prev.filter(s => s.id !== id);
+      // Update all nomor urut after deleting a surat
+      return updateAllNomorUrut(filteredSurat);
+    });
     // In a real implementation, you would also delete from PostgreSQL
   };
 

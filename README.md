@@ -86,6 +86,17 @@ npm run db:setup
 
 This will create the necessary tables and seed them with initial data.
 
+### 6. Fixing Sequence Issues
+
+If you encounter duplicate key errors when creating new surat records, it might be due to a sequence issue. Run the following command to fix it:
+
+```bash
+# Fix surat table sequence
+npm run db:fix-sequence
+```
+
+This will synchronize the auto-increment sequence with the current maximum ID in the surat table.
+
 ### Alternative Database Setup Commands
 
 You can also run the database setup steps individually:
@@ -96,6 +107,9 @@ npm run db:init
 
 # Seed tables with initial data only
 npm run db:seed
+
+# Fix surat table sequence only
+npm run db:fix-sequence
 ```
 
 ## Running the Application
