@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import { generateLaporanPDF } from '@/lib/pdf-utils';
+import { generateLaporanExcel } from '@/lib/excel-utils';
 
 export default function LaporanPage() {
   const { surat, kategoriData } = useAppContext();
@@ -27,8 +29,7 @@ export default function LaporanPage() {
     setTanggalDari(firstDay.toISOString().split('T')[0]);
     setTanggalSampai(lastDay.toISOString().split('T')[0]);
     
-    // Generate initial report
-    generateLaporan();
+    // Don't generate initial report to avoid the alert
   }, []);
 
   useEffect(() => {
@@ -143,23 +144,38 @@ export default function LaporanPage() {
 
   const handleExportPDF = () => {
     if (laporanData.length === 0) {
-      alert('Generate laporan terlebih dahulu!');
+      alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
       return;
     }
-    alert('Export PDF functionality would be implemented here');
+    
+    generateLaporanPDF(
+      laporanData, 
+      stats, 
+      kategoriData, 
+      tanggalDari, 
+      tanggalSampai, 
+      kategori
+    );
   };
 
   const handleExportExcel = () => {
     if (laporanData.length === 0) {
-      alert('Generate laporan terlebih dahulu!');
+      alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
       return;
     }
-    alert('Export Excel functionality would be implemented here');
+    
+    generateLaporanExcel(
+      laporanData, 
+      stats, 
+      tanggalDari, 
+      tanggalSampai, 
+      kategori
+    );
   };
 
   const handlePrint = () => {
     if (laporanData.length === 0) {
-      alert('Generate laporan terlebih dahulu!');
+      alert('Tidak ada data untuk di-print. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
       return;
     }
     alert('Print functionality would be implemented here');
@@ -299,32 +315,42 @@ export default function LaporanPage() {
           <h3 className="text-lg font-bold text-gray-800">Detail Surat ({laporanData.length} data)</h3>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Surat</th>
-                <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tujuan</th>
-                <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
-                <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembuat</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {laporanData.map((suratItem, index) => (
-                <tr key={suratItem.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
-                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-medium">{suratItem.nomor}</td>
-                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(suratItem.tanggal)}</td>
-                  <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{suratItem.tujuan}</td>
-                  <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-md truncate">{suratItem.perihal}</td>
-                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{suratItem.pembuat}</td>
+        {laporanData.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                  <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Surat</th>
+                  <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                  <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tujuan</th>
+                  <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
+                  <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembuat</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {laporanData.map((suratItem, index) => (
+                  <tr key={suratItem.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-medium">{suratItem.nomor}</td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(suratItem.tanggal)}</td>
+                    <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{suratItem.tujuan}</td>
+                    <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-md truncate">{suratItem.perihal}</td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{suratItem.pembuat}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <i className="fas fa-table text-gray-400 text-2xl"></i>
+            </div>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">Tidak ada data</h4>
+            <p className="text-gray-500">Silakan pilih periode dan klik tombol "Generate" untuk menampilkan laporan</p>
+          </div>
+        )}
       </div>
 
       {/* Export Laporan */}
