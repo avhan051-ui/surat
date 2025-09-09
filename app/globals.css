@@ -19,8 +19,8 @@
 }
 
 /* Remove the body background override to allow the gradient from layout.tsx to show */
+/* Also remove default text color to allow Tailwind text color classes to work properly */
 body {
-  color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
