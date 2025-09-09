@@ -159,12 +159,14 @@ export async function getSurat(): Promise<Surat[]> {
 export async function createSurat(surat: Surat): Promise<Surat> {
   const client = await pool.connect();
   try {
+    console.log('Creating surat with data:', surat);
+    
+    // Exclude the ID from the INSERT statement to let the database auto-generate it
     const result = await client.query(
-      `INSERT INTO surat (id, nomor, tanggal, tujuan, perihal, pembuat, pembuat_id, kategori, full_kategori)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO surat (nomor, tanggal, tujuan, perihal, pembuat, pembuat_id, kategori, full_kategori)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
-        surat.id,
         surat.nomor,
         surat.tanggal,
         surat.tujuan,
@@ -177,6 +179,8 @@ export async function createSurat(surat: Surat): Promise<Surat> {
     );
     
     const row = result.rows[0];
+    console.log('Created surat row:', row);
+    
     return {
       id: row.id,
       nomor: row.nomor,
@@ -188,6 +192,9 @@ export async function createSurat(surat: Surat): Promise<Surat> {
       kategori: row.kategori,
       fullKategori: row.full_kategori
     };
+  } catch (error) {
+    console.error('Database error creating surat:', error);
+    throw error;
   } finally {
     client.release();
   }
