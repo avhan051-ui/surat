@@ -15,10 +15,22 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const suratData: Surat = await request.json();
+    console.log('Received surat data:', suratData);
+    
     const newSurat = await createSurat(suratData);
+    console.log('Created surat:', newSurat);
+    
     return NextResponse.json(newSurat, { status: 201 });
   } catch (error) {
     console.error('Error creating surat:', error);
+    // Return more detailed error information
+    if (error instanceof Error) {
+      return NextResponse.json({ 
+        error: 'Failed to create surat', 
+        details: error.message,
+        stack: error.stack
+      }, { status: 500 });
+    }
     return NextResponse.json({ error: 'Failed to create surat' }, { status: 500 });
   }
 }

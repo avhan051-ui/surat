@@ -2,14 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import Swal from 'sweetalert2';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 export default function DataSuratPage() {
-  const { surat, kategoriData, deleteSurat } = useAppContext();
+  const { surat, kategoriData, deleteSurat, updateSurat, users } = useAppContext();
   const [dataSurat, setDataSurat] = useState(surat);
   const [filterKategori, setFilterKategori] = useState('');
   const [filterTanggalDari, setFilterTanggalDari] = useState('');
   const [filterTanggalSampai, setFilterTanggalSampai] = useState('');
   const [filterTujuan, setFilterTujuan] = useState('');
+  const [editingSurat, setEditingSurat] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     setDataSurat(surat);
@@ -49,22 +55,217 @@ export default function DataSuratPage() {
   };
 
   const handleExportPDF = () => {
-    alert('Export PDF functionality would be implemented here');
+    if (dataSurat.length === 0) {
+      Swal.fire({
+        title: 'Tidak ada data',
+        text: 'Tidak ada data surat untuk di-export',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    const doc = new jsPDF('landscape');
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('Laporan Data Surat Keluar', 14, 20);
+    
+    // Add date
+    const today = new Date().toLocaleDateString('id-ID');
+    doc.setFontSize(12);
+    doc.text(`Tanggal: ${today}`, 14, 30);
+    
+    // Add table
+    autoTable(doc, {
+      head: [['No', 'Nomor Surat', 'Tanggal', 'Tujuan', 'Perihal', 'Pembuat']],
+      body: dataSurat.map((suratItem, index) => [
+        index + 1,
+        suratItem.nomor,
+        formatDate(suratItem.tanggal),
+        suratItem.tujuan,
+        suratItem.perihal,
+        suratItem.pembuat
+      ]),
+      startY: 40,
+      styles: {
+        fontSize: 8
+      },
+      headStyles: {
+        fillColor: [22, 160, 133],
+        textColor: 255
+      },
+      alternateRowStyles: {
+        fillColor: [240, 240, 240]
+      }
+    });
+    
+    // Save the PDF
+    doc.save(`laporan-surat-keluar-${today}.pdf`);
+    
+    Swal.fire({
+      title: 'Berhasil!',
+      text: 'Data surat berhasil di-export ke PDF',
+      icon: 'success',
+      confirmButtonText: 'OK'
+    });
   };
 
   const handleExportExcel = () => {
-    alert('Export Excel functionality would be implemented here');
+    if (dataSurat.length === 0) {
+      Swal.fire({
+        title: 'Tidak ada data',
+        text: 'Tidak ada data surat untuk di-export',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    // Create worksheet data
+    const ws_data = [
+      ['No', 'Nomor Surat', 'Tanggal', 'Tujuan', 'Perihal', 'Pembuat']
+    ];
+    
+    dataSurat.forEach((suratItem, index) => {
+      ws_data.push([
+        index + 1,
+        suratItem.nomor,
+        formatDate(suratItem.tanggal),
+        suratItem.tujuan,
+        suratItem.perihal,
+        suratItem.pembuat
+      ]);
+    });
+    
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 5 },   // No
+      { wch: 25 },  // Nomor Surat
+      { wch: 15 },  // Tanggal
+      { wch: 30 },  // Tujuan
+      { wch: 40 },  // Perihal
+      { wch: 20 }   // Pembuat
+    ];
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Surat Keluar');
+    
+    // Generate filename
+    const today = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
+    const filename = `data-surat-keluar-${today}.xlsx`;
+    
+    // Export to Excel
+    XLSX.writeFile(wb, filename);
+    
+    Swal.fire({
+      title: 'Berhasil!',
+      text: 'Data surat berhasil di-export ke Excel',
+      icon: 'success',
+      confirmButtonText: 'OK'
+    });
   };
 
-  const handleEdit = (id: number) => {
-    alert(`Edit surat with ID: ${id}`);
+  const handleEdit = (suratItem: any) => {
+    // Initialize form with surat data
+    setEditingSurat(suratItem);
+    setShowEditModal(true);
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus surat ini?')) {
-      deleteSurat(id);
-      alert('Surat berhasil dihapus!');
+    Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: 'Data surat yang dihapus tidak dapat dikembalikan!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          // Delete surat via API
+          const response = await fetch(`/api/surat?id=${id}`, {
+            method: 'DELETE',
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`Failed to delete surat: ${response.status} ${response.statusText}`);
+          }
+
+          // Delete surat in context
+          deleteSurat(id);
+          
+          Swal.fire({
+            title: 'Terhapus!',
+            text: 'Surat berhasil dihapus.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+          });
+        } catch (error) {
+          console.error('Error deleting surat:', error);
+          Swal.fire({
+            title: 'Error!',
+            text: `Gagal menghapus surat: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+        }
+      }
+    });
+  };
+
+  const handleUpdateSurat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingSurat) return;
+    
+    try {
+      // Update surat via API
+      const response = await fetch('/api/surat', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editingSurat),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Failed to update surat: ${response.status} ${response.statusText}`);
+      }
+
+      const updatedSurat = await response.json();
+
+      // Update surat in context
+      updateSurat(editingSurat.id, updatedSurat);
+      
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Data surat berhasil diperbarui.',
+        icon: 'success',
+        confirmButtonText: 'OK'
+      });
+    } catch (error) {
+      console.error('Error updating surat:', error);
+      Swal.fire({
+        title: 'Error!',
+        text: `Gagal memperbarui surat: ${error.message}`,
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
     }
+    
+    setShowEditModal(false);
+    setEditingSurat(null);
   };
 
   return (
@@ -185,7 +386,7 @@ export default function DataSuratPage() {
                   <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{suratItem.pembuat}</td>
                   <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button 
-                      onClick={() => handleEdit(suratItem.id)}
+                      onClick={() => handleEdit(suratItem)}
                       className="text-blue-600 hover:text-blue-800 mr-3 transition-colors"
                     >
                       <i className="fas fa-edit"></i>
@@ -203,6 +404,135 @@ export default function DataSuratPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Surat Modal */}
+      {showEditModal && editingSurat && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-800">Edit Surat Keluar</h3>
+                <button 
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <i className="fas fa-times text-xl"></i>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <form onSubmit={handleUpdateSurat} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
+                    <input 
+                      type="text" 
+                      value={editingSurat.nomor}
+                      onChange={(e) => setEditingSurat({...editingSurat, nomor: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
+                    <input 
+                      type="date" 
+                      value={editingSurat.tanggal}
+                      onChange={(e) => setEditingSurat({...editingSurat, tanggal: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tujuan Surat</label>
+                  <input 
+                    type="text" 
+                    value={editingSurat.tujuan}
+                    onChange={(e) => setEditingSurat({...editingSurat, tujuan: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Perihal/Keterangan</label>
+                  <textarea 
+                    value={editingSurat.perihal}
+                    onChange={(e) => setEditingSurat({...editingSurat, perihal: e.target.value})}
+                    rows={3} 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    required
+                  ></textarea>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                    <select 
+                      value={editingSurat.kategori}
+                      onChange={(e) => setEditingSurat({...editingSurat, kategori: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      required
+                    >
+                      <option value="">Pilih Kategori</option>
+                      {Object.entries(kategoriData).map(([key, value]) => (
+                        <option key={key} value={key}>
+                          {key} - {value.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
+                    <select 
+                      value={editingSurat.pembuatId}
+                      onChange={(e) => {
+                        const userId = parseInt(e.target.value);
+                        const user = users.find(u => u.id === userId);
+                        if (user) {
+                          setEditingSurat({
+                            ...editingSurat,
+                            pembuatId: userId,
+                            pembuat: user.nama
+                          });
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      required
+                    >
+                      <option value="">Pilih Pembuat</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.nama} - {user.jabatan}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowEditModal(false)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
+                  >
+                    <i className="fas fa-save mr-2"></i>Simpan Perubahan
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

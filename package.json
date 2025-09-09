@@ -9,15 +9,20 @@
     "lint": "eslint",
     "db:setup": "npx tsx scripts/setup-db.ts",
     "db:init": "npx tsx scripts/init-db.ts",
-    "db:seed": "npx tsx scripts/seed-db.ts"
+    "db:seed": "npx tsx scripts/seed-db.ts",
+    "db:fix-sequence": "node scripts/fix-surat-sequence.js"
   },
   "dependencies": {
     "@types/pg": "^8.15.5",
     "dotenv": "^17.2.2",
+    "jspdf": "^3.0.2",
+    "jspdf-autotable": "^5.0.2",
     "next": "15.5.2",
     "pg": "^8.16.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "sweetalert2": "^11.23.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
