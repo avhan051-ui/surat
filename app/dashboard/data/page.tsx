@@ -19,18 +19,24 @@ export default function DataSuratPage() {
   const [editSubKategori, setEditSubKategori] = useState('');
   const [editRincian, setEditRincian] = useState('');
 
-  // Parse fullKategori to extract sub-kategori and rincian
-  const parseFullKategori = (fullKategori: string) => {
-    if (!fullKategori) return { subKategori: '', rincian: '' };
+  // Parse nomor surat to extract category information
+  const parseNomorSurat = (nomorSurat: string) => {
+    if (!nomorSurat) return { kategori: '', subKategori: '', rincian: '' };
     
-    const parts = fullKategori.split('.');
+    // Extract the category part from nomor surat (before the first slash)
+    const categoryPart = nomorSurat.split('/')[0];
+    if (!categoryPart) return { kategori: '', subKategori: '', rincian: '' };
+    
+    // Split by dots to get kategori.utama.sub.rincian
+    const parts = categoryPart.split('.');
     if (parts.length >= 3) {
       return {
+        kategori: parts[0] || '',
         subKategori: parts[1] || '',
         rincian: parts[2] || ''
       };
     }
-    return { subKategori: '', rincian: '' };
+    return { kategori: '', subKategori: '', rincian: '' };
   };
 
   useEffect(() => {
@@ -170,8 +176,10 @@ export default function DataSuratPage() {
     // Initialize form with surat data
     setEditingSurat(suratItem);
     
-    // Parse fullKategori to extract sub-kategori and rincian
-    const { subKategori, rincian } = parseFullKategori(suratItem.fullKategori);
+    // Parse category information from nomor surat
+    const { kategori, subKategori, rincian } = parseNomorSurat(suratItem.nomor);
+    
+    // Set the sub-category and rincian states
     setEditSubKategori(subKategori);
     setEditRincian(rincian);
     

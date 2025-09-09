@@ -266,3 +266,37 @@ export async function getCategories(): Promise<{[key: string]: Kategori}> {
     client.release();
   }
 }
+
+// Get kategori data (alias for getCategories)
+export async function getKategoriData(): Promise<{[key: string]: Kategori}> {
+  return await getCategories();
+}
+
+// Update kategori data
+export async function updateKategoriData(kategoriData: {[key: string]: Kategori}): Promise<void> {
+  const client = await pool.connect();
+  try {
+    // Start transaction
+    await client.query('BEGIN');
+    
+    // Clear existing categories
+    await client.query('DELETE FROM categories');
+    
+    // Insert new categories
+    for (const [id, kategori] of Object.entries(kategoriData)) {
+      await client.query(
+        'INSERT INTO categories (id, name, sub) VALUES ($1, $2, $3)',
+        [id, kategori.name, kategori.sub]
+      );
+    }
+    
+    // Commit transaction
+    await client.query('COMMIT');
+  } catch (error) {
+    // Rollback transaction on error
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
