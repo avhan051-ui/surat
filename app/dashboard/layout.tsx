@@ -201,7 +201,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 bg-gradient-to-br from-slate-50 to-blue-50">
           {children}
         </main>
       </div>
