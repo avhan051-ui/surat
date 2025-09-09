@@ -49,9 +49,9 @@ interface AppContextType {
   addUser: (user: User) => void;
   updateUser: (id: number, user: User) => void;
   deleteUser: (id: number) => void;
-  addSurat: (surat: Surat) => void;
-  updateSurat: (id: number, surat: Surat) => void;
-  deleteSurat: (id: number) => void;
+  addSurat: (surat: Surat) => Promise<void>;
+  updateSurat: (id: number, surat: Surat) => Promise<void>;
+  deleteSurat: (id: number) => Promise<void>;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
 }
@@ -238,9 +238,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // In a real implementation, you would fetch from PostgreSQL here
-        // For now, we'll use the initial data
-        console.log('Fetching data from PostgreSQL...');
+        // Fetch surat data from the API
+        const suratResponse = await fetch('/api/surat');
+        if (suratResponse.ok) {
+          const suratData = await suratResponse.json();
+          setSurat(suratData);
+        } else {
+          console.error('Failed to fetch surat data:', suratResponse.statusText);
+        }
+        
+        // Note: We're not fetching users from the API in this implementation
+        // as the current UI doesn't require dynamic user management
       } catch (error) {
         console.error('Error fetching data from PostgreSQL:', error);
       }
@@ -280,13 +288,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // In a real implementation, you would also delete from PostgreSQL
   };
 
-  const addSurat = (newSurat: Surat) => {
-    setSurat(prev => {
-      const updatedSurat = [...prev, newSurat];
-      // Update all nomor urut after adding new surat
-      return updateAllNomorUrut(updatedSurat);
-    });
-    // In a real implementation, you would also save to PostgreSQL
+  const addSurat = async (newSurat: Surat) => {
+    try {
+      // Remove the id from newSurat to let the backend auto-generate it
+      const { id, ...suratData } = newSurat;
+      
+      const response = await fetch('/api/surat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(suratData),
+      });
+      
+      if (response.ok) {
+        const createdSurat = await response.json();
+        setSurat(prev => {
+          const updatedSurat = [...prev, createdSurat];
+          // Update all nomor urut after adding new surat
+          return updateAllNomorUrut(updatedSurat);
+        });
+      } else {
+        console.error('Failed to create surat:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error creating surat:', error);
+    }
   };
 
   // Fungsi untuk memperbarui nomor urut semua surat berdasarkan kategori utama
@@ -322,22 +349,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return updatedSurat;
   };
 
-  const updateSurat = (id: number, updatedSurat: Surat) => {
-    setSurat(prev => {
-      const updatedList = prev.map(s => s.id === id ? updatedSurat : s);
-      // Update all nomor urut after updating a surat
-      return updateAllNomorUrut(updatedList);
-    });
-    // In a real implementation, you would also update in PostgreSQL
+  const updateSurat = async (id: number, updatedSurat: Surat) => {
+    try {
+      const response = await fetch('/api/surat', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, ...updatedSurat }),
+      });
+      
+      if (response.ok) {
+        const updatedSuratFromApi = await response.json();
+        setSurat(prev => {
+          const updatedList = prev.map(s => s.id === id ? updatedSuratFromApi : s);
+          // Update all nomor urut after updating a surat
+          return updateAllNomorUrut(updatedList);
+        });
+      } else {
+        console.error('Failed to update surat:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error updating surat:', error);
+    }
   };
 
-  const deleteSurat = (id: number) => {
-    setSurat(prev => {
-      const filteredSurat = prev.filter(s => s.id !== id);
-      // Update all nomor urut after deleting a surat
-      return updateAllNomorUrut(filteredSurat);
-    });
-    // In a real implementation, you would also delete from PostgreSQL
+  const deleteSurat = async (id: number) => {
+    try {
+      const response = await fetch(`/api/surat?id=${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setSurat(prev => {
+          const filteredSurat = prev.filter(s => s.id !== id);
+          // Update all nomor urut after deleting a surat
+          return updateAllNomorUrut(filteredSurat);
+        });
+      } else {
+        console.error('Failed to delete surat:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error deleting surat:', error);
+    }
   };
 
   const setCurrentUser = (user: User | null) => {

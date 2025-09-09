@@ -201,7 +201,7 @@ export default function DataSuratPage() {
           }
 
           // Delete surat in context
-          deleteSurat(id);
+          await deleteSurat(id);
           
           Swal.fire({
             title: 'Terhapus!',
@@ -246,7 +246,7 @@ export default function DataSuratPage() {
       const updatedSurat = await response.json();
 
       // Update surat in context
-      updateSurat(editingSurat.id, updatedSurat);
+      await updateSurat(editingSurat.id, updatedSurat);
       
       Swal.fire({
         title: 'Berhasil!',

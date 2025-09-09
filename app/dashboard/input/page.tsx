@@ -167,7 +167,7 @@ export default function InputSuratPage() {
       const savedSurat = await response.json();
 
       // Add surat to context for immediate UI update
-      addSurat(savedSurat);
+      await addSurat(savedSurat);
       
       Swal.fire({
         title: 'Berhasil!',
