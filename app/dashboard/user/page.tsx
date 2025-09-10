@@ -438,16 +438,18 @@ export default function UserManagementPage() {
     input.click();
   };
 
-  const handleSearch = () => {
-    // In a real app, you would filter the users in the context
-    // For now, we'll just show a SweetAlert
-    Swal.fire({
-      title: 'Fitur Filter',
-      text: 'Filter functionality would be implemented here',
-      icon: 'info',
-      confirmButtonText: 'OK'
-    });
-  };
+  // Filter users berdasarkan searchTerm dan filterRole
+  const filteredUsers = users.filter(user => {
+    // Filter berdasarkan searchTerm (nama atau NIP)
+    const matchesSearch = 
+      user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.nip.includes(searchTerm);
+    
+    // Filter berdasarkan role
+    const matchesRole = filterRole === '' || user.role === filterRole;
+    
+    return matchesSearch && matchesRole;
+  });
 
   return (
     <RouteGuard requiredRole="Administrator">
@@ -502,7 +504,10 @@ export default function UserManagementPage() {
             </div>
             <div className="flex items-end">
               <button 
-                onClick={handleSearch}
+                onClick={() => {
+                  // Filter diterapkan secara otomatis melalui state
+                  // Tidak perlu aksi tambahan saat tombol diklik
+                }}
                 className="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white px-4 py-2 rounded-lg text-sm transition-all"
               >
                 <i className="fas fa-search mr-1"></i>Cari
@@ -517,7 +522,7 @@ export default function UserManagementPage() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-bold text-gray-800">Daftar Pengguna</h3>
-                <p className="text-gray-600 text-sm mt-1">Total: <span>{users.length}</span> pengguna</p>
+                <p className="text-gray-600 text-sm mt-1">Total: <span>{filteredUsers.length}</span> pengguna</p>
               </div>
             </div>
           </div>
@@ -537,7 +542,7 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user, index) => (
+                {filteredUsers.map((user, index) => (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
                     <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.nama}</td>

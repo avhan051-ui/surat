@@ -169,7 +169,8 @@ export default function DashboardLayout({
       label: 'Dashboard',
       icon: 'fa-tachometer-alt',
       color: 'blue',
-      roles: ['Administrator', 'Operator', 'User']
+      roles: ['Administrator', 'Operator', 'User'],
+      prefetch: ['surat', 'users', 'kategori']
     },
     {
       id: 'input',
@@ -177,7 +178,8 @@ export default function DashboardLayout({
       label: 'Input Surat Baru',
       icon: 'fa-plus-circle',
       color: 'green',
-      roles: ['Administrator', 'Operator']
+      roles: ['Administrator', 'Operator'],
+      prefetch: ['kategori', 'users']
     },
     {
       id: 'data',
@@ -185,7 +187,8 @@ export default function DashboardLayout({
       label: 'Data Surat Keluar',
       icon: 'fa-table',
       color: 'purple',
-      roles: ['Administrator', 'Operator', 'User']
+      roles: ['Administrator', 'Operator', 'User'],
+      prefetch: ['surat', 'kategori']
     },
     {
       id: 'master-data',
@@ -193,7 +196,8 @@ export default function DashboardLayout({
       label: 'Master Data',
       icon: 'fa-database',
       color: 'indigo',
-      roles: ['Administrator']
+      roles: ['Administrator'],
+      prefetch: ['kategori']
     },
     {
       id: 'laporan',
@@ -201,7 +205,8 @@ export default function DashboardLayout({
       label: 'Laporan',
       icon: 'fa-chart-bar',
       color: 'orange',
-      roles: ['Administrator', 'Operator', 'User']
+      roles: ['Administrator', 'Operator', 'User'],
+      prefetch: ['surat', 'kategori']
     },
     {
       id: 'user',
@@ -209,7 +214,8 @@ export default function DashboardLayout({
       label: 'Kelola User',
       icon: 'fa-users',
       color: 'teal',
-      roles: ['Administrator']
+      roles: ['Administrator'],
+      prefetch: ['users']
     },
     {
       id: 'pengaturan',
@@ -217,7 +223,8 @@ export default function DashboardLayout({
       label: 'Pengaturan',
       icon: 'fa-cog',
       color: 'gray',
-      roles: ['Administrator']
+      roles: ['Administrator'],
+      prefetch: []
     },
     {
       id: 'role',
@@ -225,7 +232,8 @@ export default function DashboardLayout({
       label: 'Role',
       icon: 'fa-user-shield',
       color: 'blue',
-      roles: ['Administrator']
+      roles: ['Administrator'],
+      prefetch: []
     },
   ];
 
@@ -269,6 +277,29 @@ export default function DashboardLayout({
                   <Link
                     key={item.id}
                     href={item.href}
+                    prefetch={true} // Enable Next.js automatic prefetching
+                    onMouseEnter={() => {
+                      // Prefetch data when hovering over menu items
+                      if (item.prefetch && item.prefetch.length > 0) {
+                        item.prefetch.forEach(async (dataType) => {
+                          try {
+                            switch (dataType) {
+                              case 'surat':
+                                await fetch('/api/surat');
+                                break;
+                              case 'users':
+                                await fetch('/api/users');
+                                break;
+                              case 'kategori':
+                                await fetch('/api/kategori');
+                                break;
+                            }
+                          } catch (err) {
+                            console.log(`Prefetch ${dataType} failed:`, err);
+                          }
+                        });
+                      }
+                    }}
                     className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 border ${
                       active
                         ? `bg-gradient-to-r from-${item.color}-50 to-${item.color}-50 text-${item.color}-700 border-${item.color}-100`

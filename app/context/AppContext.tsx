@@ -258,6 +258,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
           console.error('Failed to fetch users data:', usersResponse.statusText);
         }
+        
+        // Fetch kategori data from the API
+        const kategoriResponse = await fetch('/api/kategori');
+        if (kategoriResponse.ok) {
+          const kategoriData = await kategoriResponse.json();
+          setKategoriData(kategoriData);
+        } else {
+          console.error('Failed to fetch kategori data:', kategoriResponse.statusText);
+        }
       } catch (error) {
         console.error('Error fetching data from PostgreSQL:', error);
       }

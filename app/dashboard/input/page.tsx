@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { showSuccessToast, showErrorToast, showWarningToast } from '@/lib/sweetalert-utils';
+import LoadingSpinner from '@/app/components/LoadingSpinner';
 
 // SearchableDropdown Component
 const SearchableDropdown = ({ options, value, onChange, placeholder, disabled = false }) => {
@@ -108,6 +109,7 @@ export default function InputSuratPage() {
   const [rincianOptions, setRincianOptions] = useState<{key: string, name: string}[]>([]);
   const [subKategoriDisabled, setSubKategoriDisabled] = useState(true);
   const [rincianDisabled, setRincianDisabled] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Set today's date as default
@@ -215,6 +217,9 @@ export default function InputSuratPage() {
       return;
     }
 
+    // Show loading state
+    setLoading(true);
+
     // Create new surat object with automatic number
     // Remove ID from the object so database can auto-generate it
     const newSurat = {
@@ -262,199 +267,213 @@ export default function InputSuratPage() {
       }
       
       showErrorToast(errorMessage);
+    } finally {
+      // Reset loading state
+      setLoading(false);
+      
+      // Reset form
+      setKategoriUtama('');
+      setSubKategori('');
+      setRincian('');
+      setNomorSurat('[Pilih kategori untuk generate nomor]');
+      setTujuanSurat('');
+      setPerihal('');
+      setPembuatSurat('');
+      setStatusPembuat('');
+      setSubKategoriDisabled(true);
+      setRincianDisabled(true);
+      setSubKategoriOptions([]);
+      setRincianOptions([]);
+      
+      // Set today's date again
+      const today = new Date().toISOString().split('T')[0];
+      setTanggalSurat(today);
     }
-    
-    // Reset form
-    setKategoriUtama('');
-    setSubKategori('');
-    setRincian('');
-    setNomorSurat('[Pilih kategori untuk generate nomor]');
-    setTujuanSurat('');
-    setPerihal('');
-    setPembuatSurat('');
-    setStatusPembuat('');
-    setSubKategoriDisabled(true);
-    setRincianDisabled(true);
-    setSubKategoriOptions([]);
-    setRincianOptions([]);
-    
-    // Set today's date again
-    const today = new Date().toISOString().split('T')[0];
-    setTanggalSurat(today);
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Input Surat Keluar Baru</h2>
-            <p className="text-gray-600 mt-1">Lengkapi form di bawah untuk membuat surat keluar baru</p>
+    <Suspense fallback={<LoadingSpinner message="Memuat form input surat..." />}>
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Input Surat Keluar Baru</h2>
+              <p className="text-gray-600 mt-1">Lengkapi form di bawah untuk membuat surat keluar baru</p>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-full">
+              <i className="fas fa-plus-circle text-blue-600 text-2xl"></i>
+            </div>
           </div>
-          <div className="bg-blue-50 p-3 rounded-full">
-            <i className="fas fa-plus-circle text-blue-600 text-2xl"></i>
-          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Kategori Section */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Kategori Surat</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
+                  <SearchableDropdown
+                    options={Object.entries(kategoriData).map(([key, value]) => ({
+                      key,
+                      name: `${key} - ${value.name}`
+                    }))}
+                    value={kategoriUtama}
+                    onChange={handleKategoriUtamaChange}
+                    placeholder="Pilih Kategori"
+                    disabled={false}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
+                  <SearchableDropdown
+                    options={subKategoriOptions}
+                    value={subKategori}
+                    onChange={handleSubKategoriChange}
+                    placeholder="Pilih Sub Kategori"
+                    disabled={subKategoriDisabled}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
+                  <SearchableDropdown
+                    options={rincianOptions}
+                    value={rincian}
+                    onChange={handleRincianChange}
+                    placeholder="Pilih Rincian"
+                    disabled={rincianDisabled}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Nomor Surat Preview */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Nomor Surat (Otomatis)</label>
+              <div className="flex items-center space-x-3">
+                <div className="bg-blue-600 p-2 rounded-lg">
+                  <i className="fas fa-hashtag text-white"></i>
+                </div>
+                <div className="text-xl lg:text-2xl font-mono text-blue-600 font-bold break-all">
+                  {nomorSurat}
+                </div>
+              </div>
+            </div>
+
+            {/* Detail Surat Section */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Detail Surat</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tujuan Surat</label>
+                  <input 
+                    type="text" 
+                    value={tujuanSurat}
+                    onChange={(e) => setTujuanSurat(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                    placeholder="Nama instansi/penerima" 
+                    required 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
+                  <input 
+                    type="date" 
+                    value={tanggalSurat}
+                    onChange={(e) => setTanggalSurat(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mt-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
+                  <SearchableDropdown
+                    options={users.map(user => ({
+                      key: user.id.toString(),
+                      name: `${user.nama} - ${user.jabatan}`
+                    }))}
+                    value={pembuatSurat}
+                    onChange={handlePembuatSuratChange}
+                    placeholder="Pilih Pembuat Surat"
+                    disabled={false}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status Pembuat</label>
+                  <input 
+                    type="text" 
+                    value={statusPembuat}
+                    readOnly
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" 
+                    placeholder="Status akan muncul otomatis" 
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Perihal/Keterangan</label>
+                <textarea 
+                  value={perihal}
+                  onChange={(e) => setPerihal(e.target.value)}
+                  rows={4} 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  placeholder="Masukkan perihal atau keterangan surat" 
+                  required
+                ></textarea>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
+              <button 
+                type="button" 
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  // Reset form
+                  setKategoriUtama('');
+                  setSubKategori('');
+                  setRincian('');
+                  setNomorSurat('[Pilih kategori untuk generate nomor]');
+                  setTujuanSurat('');
+                  setPerihal('');
+                  setPembuatSurat('');
+                  setStatusPembuat('');
+                  setSubKategoriDisabled(true);
+                  setRincianDisabled(true);
+                  setSubKategoriOptions([]);
+                  setRincianOptions([]);
+                  
+                  // Set today's date again
+                  const today = new Date().toISOString().split('T')[0];
+                  setTanggalSurat(today);
+                }}
+              >
+                <i className="fas fa-times mr-2"></i>Batal
+              </button>
+              <button 
+                type="submit" 
+                className={`px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-save mr-2"></i>Simpan Surat
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Kategori Section */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Kategori Surat</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
-                <SearchableDropdown
-                  options={Object.entries(kategoriData).map(([key, value]) => ({
-                    key,
-                    name: `${key} - ${value.name}`
-                  }))}
-                  value={kategoriUtama}
-                  onChange={handleKategoriUtamaChange}
-                  placeholder="Pilih Kategori"
-                  disabled={false}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
-                <SearchableDropdown
-                  options={subKategoriOptions}
-                  value={subKategori}
-                  onChange={handleSubKategoriChange}
-                  placeholder="Pilih Sub Kategori"
-                  disabled={subKategoriDisabled}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
-                <SearchableDropdown
-                  options={rincianOptions}
-                  value={rincian}
-                  onChange={handleRincianChange}
-                  placeholder="Pilih Rincian"
-                  disabled={rincianDisabled}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Nomor Surat Preview */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Nomor Surat (Otomatis)</label>
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <i className="fas fa-hashtag text-white"></i>
-              </div>
-              <div className="text-xl lg:text-2xl font-mono text-blue-600 font-bold break-all">
-                {nomorSurat}
-              </div>
-            </div>
-          </div>
-
-          {/* Detail Surat Section */}
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Detail Surat</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tujuan Surat</label>
-                <input 
-                  type="text" 
-                  value={tujuanSurat}
-                  onChange={(e) => setTujuanSurat(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  placeholder="Nama instansi/penerima" 
-                  required 
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
-                <input 
-                  type="date" 
-                  value={tanggalSurat}
-                  onChange={(e) => setTanggalSurat(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  required 
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mt-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
-                <SearchableDropdown
-                  options={users.map(user => ({
-                    key: user.id.toString(),
-                    name: `${user.nama} - ${user.jabatan}`
-                  }))}
-                  value={pembuatSurat}
-                  onChange={handlePembuatSuratChange}
-                  placeholder="Pilih Pembuat Surat"
-                  disabled={false}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status Pembuat</label>
-                <input 
-                  type="text" 
-                  value={statusPembuat}
-                  readOnly
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50" 
-                  placeholder="Status akan muncul otomatis" 
-                />
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Perihal/Keterangan</label>
-              <textarea 
-                value={perihal}
-                onChange={(e) => setPerihal(e.target.value)}
-                rows={4} 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                placeholder="Masukkan perihal atau keterangan surat" 
-                required
-              ></textarea>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
-            <button 
-              type="button" 
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              onClick={() => {
-                // Reset form
-                setKategoriUtama('');
-                setSubKategori('');
-                setRincian('');
-                setNomorSurat('[Pilih kategori untuk generate nomor]');
-                setTujuanSurat('');
-                setPerihal('');
-                setPembuatSurat('');
-                setStatusPembuat('');
-                setSubKategoriDisabled(true);
-                setRincianDisabled(true);
-                setSubKategoriOptions([]);
-                setRincianOptions([]);
-                
-                // Set today's date again
-                const today = new Date().toISOString().split('T')[0];
-                setTanggalSurat(today);
-              }}
-            >
-              <i className="fas fa-times mr-2"></i>Batal
-            </button>
-            <button 
-              type="submit" 
-              className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
-            >
-              <i className="fas fa-save mr-2"></i>Simpan Surat
-            </button>
-          </div>
-        </form>
       </div>
-    </div>
+    </Suspense>
   );
 }

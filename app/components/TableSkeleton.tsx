@@ -1,0 +1,41 @@
+'use client';
+
+import React from 'react';
+
+const TableSkeleton: React.FC = () => {
+  return (
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <div className="h-6 bg-gray-200 rounded w-1/4 mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {[...Array(7)].map((_, i) => (
+                <th key={i} className="px-6 py-3 text-left">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {[...Array(5)].map((_, rowIndex) => (
+              <tr key={rowIndex} className="hover:bg-gray-50">
+                {[...Array(7)].map((_, colIndex) => (
+                  <td key={colIndex} className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default TableSkeleton;

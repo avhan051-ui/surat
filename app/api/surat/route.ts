@@ -15,8 +15,8 @@ export async function GET() {
     // Fetch from database if not cached
     const surat = await getSurat();
     
-    // Cache the result for 5 minutes (300 seconds)
-    cache.set('suratData', surat, 300);
+    // Cache the result for 1 minute (60 seconds) for better responsiveness
+    cache.set('suratData', surat, 60);
     
     return NextResponse.json(surat);
   } catch (error) {

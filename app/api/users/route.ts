@@ -15,8 +15,8 @@ export async function GET() {
     // Fetch from database if not cached
     const users = await getUsers();
     
-    // Cache the result for 5 minutes (300 seconds)
-    cache.set('usersData', users, 300);
+    // Cache the result for 1 minute (60 seconds) for better responsiveness
+    cache.set('usersData', users, 60);
     
     return NextResponse.json(users);
   } catch (error) {
