@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import RouteGuard from '@/app/components/RouteGuard';
+import { showSuccessToast } from '@/lib/sweetalert-utils';
 
 export default function RoleManagementPage() {
   const { kategoriData, updateKategoriData } = useAppContext();
@@ -71,7 +72,7 @@ export default function RoleManagementPage() {
 
   // Function to save changes
   const saveChanges = () => {
-    alert('Pengaturan akses berhasil disimpan!');
+    showSuccessToast('Pengaturan akses berhasil disimpan!');
     // In a real implementation, you would send this data to your backend
     console.log('Updated menu permissions:', menuItems);
   };

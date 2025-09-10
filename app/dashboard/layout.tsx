@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
+import { showConfirmationDialog } from '@/lib/sweetalert-utils';
 
 export default function DashboardLayout({
   children,
@@ -109,12 +110,20 @@ export default function DashboardLayout({
   }, [notifications, isClient]);
 
   const handleLogout = () => {
-    if (confirm('Apakah Anda yakin ingin keluar?')) {
-      // Clear current user
-      setCurrentUser(null);
-      // In a real app, you would clear the session/cookies
-      router.push('/login');
-    }
+    showConfirmationDialog({
+      title: 'Konfirmasi Logout',
+      text: 'Apakah Anda yakin ingin keluar dari aplikasi?',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal',
+      icon: 'warning'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Clear current user
+        setCurrentUser(null);
+        // In a real app, you would clear the session/cookies
+        router.push('/login');
+      }
+    });
   };
 
   const markAsRead = (id: number) => {
