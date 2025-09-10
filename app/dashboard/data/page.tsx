@@ -1,11 +1,103 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { showSuccessToast, showErrorToast, showWarningToast, showConfirmationDialog } from '@/lib/sweetalert-utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+
+// SearchableDropdown Component
+const SearchableDropdown = ({ users, selectedUserId, onSelectUser }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user =>
+    user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.jabatan.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.nip.includes(searchTerm)
+  );
+
+  // Get selected user name for display
+  const selectedUser = users.find(user => user.id === selectedUserId);
+  const displayText = selectedUser 
+    ? `${selectedUser.nama} - ${selectedUser.jabatan}` 
+    : 'Pilih Pembuat';
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div 
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer flex justify-between items-center"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className={selectedUserId ? 'text-gray-900' : 'text-gray-500'}>
+          {displayText}
+        </span>
+        <svg 
+          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="p-2">
+            <input
+              type="text"
+              placeholder="Cari pembuat surat..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ul className="py-1">
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <li
+                  key={user.id}
+                  className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                    selectedUserId === user.id ? 'bg-blue-100 text-blue-800' : 'text-gray-700'
+                  }`}
+                  onClick={() => {
+                    onSelectUser(user.id);
+                    setIsOpen(false);
+                    setSearchTerm('');
+                  }}
+                >
+                  <div className="font-medium">{user.nama}</div>
+                  <div className="text-sm text-gray-500">{user.jabatan} - {user.nip}</div>
+                </li>
+              ))
+            ) : (
+              <li className="px-4 py-2 text-gray-500">Tidak ada hasil ditemukan</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function DataSuratPage() {
   const { surat, kategoriData, deleteSurat, updateSurat, users, currentUser } = useAppContext();
@@ -635,10 +727,10 @@ export default function DataSuratPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
-                      <select 
-                        value={editingSurat.pembuatId}
-                        onChange={(e) => {
-                          const userId = parseInt(e.target.value);
+                      <SearchableDropdown
+                        users={users}
+                        selectedUserId={editingSurat.pembuatId}
+                        onSelectUser={(userId) => {
                           const user = users.find(u => u.id === userId);
                           if (user) {
                             setEditingSurat({
@@ -648,16 +740,7 @@ export default function DataSuratPage() {
                             });
                           }
                         }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                        required
-                      >
-                        <option value="">Pilih Pembuat</option>
-                        {users.map(user => (
-                          <option key={user.id} value={user.id}>
-                            {user.nama} - {user.jabatan}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
                   </div>
 

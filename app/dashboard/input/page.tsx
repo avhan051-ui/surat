@@ -1,8 +1,97 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { showSuccessToast, showErrorToast, showWarningToast } from '@/lib/sweetalert-utils';
+
+// SearchableDropdown Component
+const SearchableDropdown = ({ options, value, onChange, placeholder, disabled = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Filter options based on search term
+  const filteredOptions = options.filter(option =>
+    option.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    option.key.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Get selected option for display
+  const selectedOption = options.find(option => option.key === value);
+  const displayText = selectedOption ? selectedOption.name : placeholder;
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div 
+        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer flex justify-between items-center ${disabled ? 'bg-gray-100 opacity-50 cursor-not-allowed' : ''}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <span className={value ? 'text-gray-900' : 'text-gray-500'}>
+          {displayText}
+        </span>
+        <svg 
+          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="p-2">
+            <input
+              type="text"
+              placeholder="Cari..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ul className="py-1">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <li
+                  key={option.key}
+                  className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                    value === option.key ? 'bg-blue-100 text-blue-800' : 'text-gray-700'
+                  }`}
+                  onClick={() => {
+                    onChange(option.key);
+                    setIsOpen(false);
+                    setSearchTerm('');
+                  }}
+                >
+                  <div className="font-medium">{option.name}</div>
+                  <div className="text-sm text-gray-500">{option.key}</div>
+                </li>
+              ))
+            ) : (
+              <li className="px-4 py-2 text-gray-500">Tidak ada hasil ditemukan</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function InputSuratPage() {
   const { kategoriData, users, addSurat, surat } = useAppContext();
@@ -33,8 +122,7 @@ export default function InputSuratPage() {
     return existingSurat.length + 1;
   };
 
-  const handleKategoriUtamaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleKategoriUtamaChange = (value: string) => {
     setKategoriUtama(value);
     setSubKategori('');
     setRincian('');
@@ -54,8 +142,7 @@ export default function InputSuratPage() {
     }
   };
 
-  const handleSubKategoriChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleSubKategoriChange = (value: string) => {
     setSubKategori(value);
     setRincian('');
     setNomorSurat('[Pilih kategori untuk generate nomor]');
@@ -74,8 +161,7 @@ export default function InputSuratPage() {
     }
   };
 
-  const handleRincianChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleRincianChange = (value: string) => {
     setRincian(value);
     updateNomorSurat(kategoriUtama, subKategori, value);
   };
@@ -94,8 +180,7 @@ export default function InputSuratPage() {
     }
   };
 
-  const handlePembuatSuratChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const userId = e.target.value;
+  const handlePembuatSuratChange = (userId: string) => {
     setPembuatSurat(userId);
     
     if (userId) {
@@ -204,55 +289,38 @@ export default function InputSuratPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
-                <select 
+                <SearchableDropdown
+                  options={Object.entries(kategoriData).map(([key, value]) => ({
+                    key,
+                    name: `${key} - ${value.name}`
+                  }))}
                   value={kategoriUtama}
                   onChange={handleKategoriUtamaChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  required
-                >
-                  <option value="">Pilih Kategori</option>
-                  {Object.entries(kategoriData).map(([key, value]) => (
-                    <option key={key} value={key}>
-                      {key} - {value.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Pilih Kategori"
+                  disabled={false}
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
-                <select 
+                <SearchableDropdown
+                  options={subKategoriOptions}
                   value={subKategori}
                   onChange={handleSubKategoriChange}
+                  placeholder="Pilih Sub Kategori"
                   disabled={subKategoriDisabled}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  required={!subKategoriDisabled}
-                >
-                  <option value="">Pilih Sub Kategori</option>
-                  {subKategoriOptions.map(option => (
-                    <option key={option.key} value={option.key}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
-                <select 
+                <SearchableDropdown
+                  options={rincianOptions}
                   value={rincian}
                   onChange={handleRincianChange}
+                  placeholder="Pilih Rincian"
                   disabled={rincianDisabled}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  required={!rincianDisabled}
-                >
-                  <option value="">Pilih Rincian</option>
-                  {rincianOptions.map(option => (
-                    <option key={option.key} value={option.key}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
           </div>
@@ -301,19 +369,16 @@ export default function InputSuratPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mt-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
-                <select 
+                <SearchableDropdown
+                  options={users.map(user => ({
+                    key: user.id.toString(),
+                    name: `${user.nama} - ${user.jabatan}`
+                  }))}
                   value={pembuatSurat}
                   onChange={handlePembuatSuratChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  required
-                >
-                  <option value="">Pilih Pembuat Surat</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id.toString()}>
-                      {user.nama} - {user.jabatan}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Pilih Pembuat Surat"
+                  disabled={false}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status Pembuat</label>
