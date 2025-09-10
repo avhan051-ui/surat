@@ -4,13 +4,40 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { showSuccessToast, showErrorToast, showWarningToast, showConfirmationDialog } from '@/lib/sweetalert-utils';
 
+// Define types
+interface Rincian {
+  [id: string]: string;
+}
+
+interface SubCategory {
+  name: string;
+  rincian: Rincian;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  sub: {
+    [id: string]: SubCategory;
+  };
+}
+
+interface ImportPreviewRow {
+  kategori_id: string;
+  kategori_nama: string;
+  subkategori_id?: string;
+  subkategori_nama?: string;
+  rincian_id?: string;
+  rincian_nama?: string;
+}
+
 export default function MasterDataPage() {
   const { kategoriData, updateKategoriData } = useAppContext();
   
   // States for categories
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<any>(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<any>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category & { id: string } | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory & { id: string } | null>(null);
   
   // Form states
   const [newCategory, setNewCategory] = useState({ id: '', name: '' });
@@ -27,7 +54,7 @@ export default function MasterDataPage() {
   
   // Import states
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [importPreview, setImportPreview] = useState<ImportPreviewRow[]>([]);
   const [importStep, setImportStep] = useState<'upload' | 'preview' | 'processing'>('upload');
   const [importStats, setImportStats] = useState<{ success: number; error: number }>({ success: 0, error: 0 });
 
@@ -35,8 +62,8 @@ export default function MasterDataPage() {
   useEffect(() => {
     const categoriesArray = Object.entries(kategoriData).map(([id, data]) => ({
       id,
-      ...data
-    }));
+      ...(data as Omit<Category, 'id'>)
+    })) as Category[];
     setCategories(categoriesArray);
   }, [kategoriData]);
 
@@ -291,8 +318,57 @@ export default function MasterDataPage() {
     });
   };
 
+  // Handle deleting a rincian
+  const handleDeleteRincian = async (categoryId: string, subCategoryId: string, rincianId: string) => {
+    showConfirmationDialog({
+      title: 'Hapus Rincian',
+      text: 'Apakah Anda yakin ingin menghapus rincian ini?',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setLoading(true);
+        try {
+          const updatedKategoriData = { ...kategoriData };
+          delete updatedKategoriData[categoryId].sub[subCategoryId].rincian[rincianId];
+          
+          // Update via API
+          const response = await fetch('/api/kategori', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updatedKategoriData),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to delete rincian');
+          }
+
+          updateKategoriData(updatedKategoriData);
+          showSuccessToast('Rincian berhasil dihapus!');
+        } catch (error) {
+          console.error('Error deleting rincian:', error);
+          showErrorToast('Gagal menghapus rincian!');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
 
 
+
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      setImportFile(file);
+      previewImportData(file);
+    }
+  };
 
   // Preview import data
   const previewImportData = async (file: File) => {
@@ -305,16 +381,16 @@ export default function MasterDataPage() {
         const text = await file.text();
         const lines = text.split('\n');
         const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-        const data = [];
+        const data: ImportPreviewRow[] = [];
         
         for (let i = 1; i < lines.length; i++) {
           if (lines[i].trim()) {
             const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-            const row: any = {};
+            const row: Partial<ImportPreviewRow> = {};
             headers.forEach((header, index) => {
-              row[header] = values[index] || '';
+              (row as Record<string, string>)[header] = values[index] || '';
             });
-            data.push(row);
+            data.push(row as ImportPreviewRow);
           }
         }
         
@@ -438,6 +514,12 @@ export default function MasterDataPage() {
     setImportPreview([]);
     setImportStep('upload');
     setImportStats({ success: 0, error: 0 });
+    
+    // Reset file input
+    const fileInput = document.getElementById('importFileInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   return (
@@ -584,7 +666,7 @@ export default function MasterDataPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(selectedCategory.sub || {}).map(([subId, subData]: [string, any]) => (
+              {Object.entries(selectedCategory.sub || {}).map(([subId, subData]) => (
                 <div
                   key={subId}
                   className={`border rounded-xl p-6 transition-all cursor-pointer ${
@@ -652,7 +734,7 @@ export default function MasterDataPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="font-bold text-gray-800">{rincianId}</h4>
-                      <p className="text-gray-600 mt-1">{rincianName as string}</p>
+                      <p className="text-gray-600 mt-1">{rincianName}</p>
                     </div>
                     <button
                       onClick={() => handleDeleteRincian(selectedCategory.id, selectedSubCategory.id, rincianId)}
@@ -904,6 +986,7 @@ export default function MasterDataPage() {
                             accept=".csv" 
                             className="hidden" 
                             onChange={handleFileSelect}
+                            onClick={(e) => (e.target as HTMLInputElement).value = ''}
                           />
                         <button
                           onClick={() => document.getElementById('importFileInput')?.click()}
@@ -1011,6 +1094,11 @@ export default function MasterDataPage() {
                         setImportStep('upload');
                         setImportFile(null);
                         setImportPreview([]);
+                        // Reset file input
+                        const fileInput = document.getElementById('importFileInput') as HTMLInputElement;
+                        if (fileInput) {
+                          fileInput.value = '';
+                        }
                       }}
                       className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                     >
