@@ -5,6 +5,8 @@ import { useAppContext } from '@/app/context/AppContext';
 import { showSuccessToast, showErrorToast, showWarningToast, showConfirmationDialog } from '@/lib/sweetalert-utils';
 import RouteGuard from '@/app/components/RouteGuard';
 import TableSkeleton from '@/app/components/TableSkeleton';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function SuratMasukPage() {
   const { suratMasuk, addSuratMasuk, updateSuratMasuk, deleteSuratMasuk, currentUser } = useAppContext();
@@ -211,6 +213,64 @@ export default function SuratMasukPage() {
     });
   };
 
+  const handleExportPDF = () => {
+    try {
+      // Create a new jsPDF instance
+      const doc = new jsPDF('landscape');
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Laporan Data Surat Masuk', 14, 20);
+      
+      // Add subtitle with date
+      const today = new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+      doc.setFontSize(12);
+      doc.text(`Tanggal: ${today}`, 14, 30);
+      
+      // Prepare table data
+      const tableData = dataSuratMasuk.map((item, index) => [
+        index + 1,
+        item.nomor,
+        formatDate(item.tanggal),
+        item.pengirim,
+        item.perihal,
+        item.filePath ? 'Ada' : 'Tidak Ada'
+      ]);
+      
+      // Add table using autoTable
+      autoTable(doc, {
+        head: [['No', 'Nomor Surat', 'Tanggal', 'Pengirim', 'Perihal', 'Lampiran']],
+        body: tableData,
+        startY: 40,
+        styles: {
+          fontSize: 8
+        },
+        headStyles: {
+          fillColor: [37, 99, 235], // Blue color
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+          fillColor: [240, 240, 240] // Light gray
+        },
+        margin: { top: 40 }
+      });
+      
+      // Save the PDF
+      doc.save(`laporan-surat-masuk-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      showSuccessToast('Laporan PDF berhasil diunduh');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showErrorToast('Gagal membuat laporan PDF');
+    }
+  };
+
   return (
     <RouteGuard>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -230,12 +290,20 @@ export default function SuratMasukPage() {
             <div className="text-gray-700">
               <p className="text-sm">Total Surat Masuk: <span className="font-semibold">{dataSuratMasuk.length}</span></p>
             </div>
-            <button 
-              onClick={handleAddSuratMasuk}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-            >
-              <i className="fas fa-plus mr-2"></i>Tambah Surat Masuk
-            </button>
+            <div className="flex space-x-3">
+              <button 
+                onClick={handleExportPDF}
+                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+              >
+                <i className="fas fa-file-pdf mr-2"></i>Export PDF
+              </button>
+              <button 
+                onClick={handleAddSuratMasuk}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+              >
+                <i className="fas fa-plus mr-2"></i>Tambah Surat Masuk
+              </button>
+            </div>
           </div>
         </div>
 
