@@ -18,6 +18,15 @@ export default function DataSuratPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSubKategori, setEditSubKategori] = useState('');
   const [editRincian, setEditRincian] = useState('');
+  
+  // Extract nomor urut from nomor surat for editing
+  const extractNomorUrut = (nomorSurat: string) => {
+    const parts = nomorSurat.split('/');
+    return parts.length > 1 ? parts[1] : '';
+  };
+  
+  // State to store nomor urut for editing
+  const [editNomorUrut, setEditNomorUrut] = useState('');
 
   // Parse nomor surat to extract category information
   const parseNomorSurat = (nomorSurat: string) => {
@@ -29,11 +38,12 @@ export default function DataSuratPage() {
     
     // Split by dots to get kategori.utama.sub.rincian
     const parts = categoryPart.split('.');
-    if (parts.length >= 3) {
+    if (parts.length >= 4) {
+      // For format like 500.6.1.1, kategori is 500.6 (first two parts)
       return {
-        kategori: parts[0] || '',
-        subKategori: parts[1] || '',
-        rincian: parts[2] || ''
+        kategori: parts[0] + '.' + parts[1],
+        subKategori: parts[2],
+        rincian: parts[3]
       };
     }
     return { kategori: '', subKategori: '', rincian: '' };
@@ -42,6 +52,27 @@ export default function DataSuratPage() {
   useEffect(() => {
     setDataSurat(surat);
   }, [surat]);
+
+  // Effect to update sub-kategori and rincian when editingSurat changes
+  useEffect(() => {
+    if (editingSurat && showEditModal) {
+      const { kategori, subKategori, rincian } = parseNomorSurat(editingSurat.nomor);
+      // Only update if we have parsed values and they're different from current state
+      if (kategori && editingSurat.kategori !== kategori) {
+        setEditingSurat(prev => ({ ...prev, kategori }));
+      }
+      if (editSubKategori !== (subKategori || '')) {
+        setEditSubKategori(subKategori || '');
+      }
+      if (editRincian !== (rincian || '')) {
+        setEditRincian(rincian || '');
+      }
+      // Extract and set nomor urut only if not already set
+      if (!editNomorUrut) {
+        setEditNomorUrut(extractNomorUrut(editingSurat.nomor));
+      }
+    }
+  }, [editingSurat?.nomor, showEditModal]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -173,15 +204,36 @@ export default function DataSuratPage() {
   };
 
   const handleEdit = (suratItem: any) => {
-    // Initialize form with surat data
-    setEditingSurat(suratItem);
-    
     // Parse category information from nomor surat
     const { kategori, subKategori, rincian } = parseNomorSurat(suratItem.nomor);
     
+    // Format tanggal untuk input date (YYYY-MM-DD)
+    let formattedDate = '';
+    if (suratItem.tanggal) {
+      // Jika tanggal sudah dalam format YYYY-MM-DD, gunakan langsung
+      if (suratItem.tanggal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        formattedDate = suratItem.tanggal;
+      } else {
+        // Jika tanggal dalam format lain, konversi ke YYYY-MM-DD
+        const dateObj = new Date(suratItem.tanggal);
+        if (!isNaN(dateObj.getTime())) {
+          formattedDate = dateObj.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    // Initialize form with surat data
+    setEditingSurat({
+      ...suratItem,
+      tanggal: formattedDate
+    });
+    
     // Set the sub-category and rincian states
-    setEditSubKategori(subKategori);
-    setEditRincian(rincian);
+    setEditSubKategori(subKategori || '');
+    setEditRincian(rincian || '');
+    
+    // Extract and set nomor urut
+    setEditNomorUrut(extractNomorUrut(suratItem.nomor));
     
     setShowEditModal(true);
   };
@@ -224,9 +276,14 @@ export default function DataSuratPage() {
     if (!editingSurat) return;
     
     try {
-      // Create updated surat object with fullKategori
+      // Generate nomor surat otomatis
+      const tahun = editingSurat.tanggal ? new Date(editingSurat.tanggal).getFullYear() : new Date().getFullYear();
+      const generatedNomor = `${editingSurat.kategori || 'XXX'}.${editSubKategori || 'X'}.${editRincian || 'X'}/${editNomorUrut || 'XXX'}/${tahun}`;
+      
+      // Create updated surat object with fullKategori and generated nomor
       const updatedSurat = {
         ...editingSurat,
+        nomor: generatedNomor,
         fullKategori: `${editingSurat.kategori}.${editSubKategori}.${editRincian}`
       };
 
@@ -253,6 +310,7 @@ export default function DataSuratPage() {
       setEditingSurat(null);
       setEditSubKategori('');
       setEditRincian('');
+      setEditNomorUrut('');
     } catch (error) {
       console.error('Error updating surat:', error);
       showErrorToast(`Gagal memperbarui surat: ${error.message}`);
@@ -419,22 +477,42 @@ export default function DataSuratPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
                     <input 
                       type="text" 
-                      value={editingSurat.nomor}
-                      onChange={(e) => setEditingSurat({...editingSurat, nomor: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      value={`${editingSurat.kategori || 'XXX'}.${editSubKategori || 'X'}.${editRincian || 'X'}/${editNomorUrut || 'XXX'}${editingSurat.tanggal ? `/${new Date(editingSurat.tanggal).getFullYear()}` : ''}`}
+                      onChange={(e) => {
+                        // Extract nomor urut from the input
+                        const parts = e.target.value.split('/');
+                        if (parts.length > 1) {
+                          setEditNomorUrut(parts[1]);
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
                       required
+                      readOnly
                     />
+                    <p className="mt-1 text-xs text-gray-500">Nomor surat otomatis berdasarkan kategori yang dipilih</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Urut</label>
                     <input 
-                      type="date" 
-                      value={editingSurat.tanggal}
-                      onChange={(e) => setEditingSurat({...editingSurat, tanggal: e.target.value})}
+                      type="text" 
+                      value={editNomorUrut}
+                      onChange={(e) => setEditNomorUrut(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       required
+                      placeholder="001"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
+                  <input 
+                    type="date" 
+                    value={editingSurat.tanggal}
+                    onChange={(e) => setEditingSurat({...editingSurat, tanggal: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    required
+                  />
                 </div>
 
                 <div>
@@ -463,9 +541,9 @@ export default function DataSuratPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
                     <select 
-                      value={editingSurat.kategori}
+                      value={editingSurat?.kategori || ''}
                       onChange={(e) => {
-                        setEditingSurat({...editingSurat, kategori: e.target.value});
+                        setEditingSurat(prev => ({...prev, kategori: e.target.value}));
                         setEditSubKategori(''); // Reset sub-kategori when main category changes
                         setEditRincian(''); // Reset rincian when main category changes
                       }}
@@ -494,7 +572,7 @@ export default function DataSuratPage() {
                     >
                       <option value="">Pilih Sub Kategori</option>
                       {editingSurat?.kategori && kategoriData[editingSurat.kategori]?.sub && 
-                        Object.entries(kategoriData[editingSurat.kategori].sub).map(([key, value]) => (
+                        Object.entries(kategoriData[editingSurat.kategori].sub).map(([key, value]: [string, any]) => (
                           <option key={key} value={key}>
                             {key} - {value.name}
                           </option>
@@ -514,7 +592,7 @@ export default function DataSuratPage() {
                       <option value="">Pilih Rincian</option>
                       {editingSurat?.kategori && editSubKategori && 
                        kategoriData[editingSurat.kategori]?.sub?.[editSubKategori]?.rincian &&
-                        Object.entries(kategoriData[editingSurat.kategori].sub[editSubKategori].rincian).map(([key, value]) => (
+                        Object.entries(kategoriData[editingSurat.kategori].sub[editSubKategori].rincian).map(([key, value]: [string, any]) => (
                           <option key={key} value={key}>
                             {key} - {value}
                           </option>
