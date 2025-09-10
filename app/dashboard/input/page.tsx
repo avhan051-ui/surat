@@ -208,11 +208,16 @@ export default function InputSuratPage() {
       return;
     }
 
+    // Check if nomor surat already exists
+    const isDuplicate = surat.some(suratItem => suratItem.nomor === nomorSurat);
+    if (isDuplicate) {
+      showWarningToast('Nomor surat sudah ada. Silakan pilih kategori lain atau tunggu sebentar.');
+      return;
+    }
+
     // Create new surat object with automatic number
-    // Use a proper integer ID instead of Date.now() which is too large for PostgreSQL integer
-    const maxId = surat.length > 0 ? Math.max(...surat.map(s => s.id)) : 0;
+    // Remove ID from the object so database can auto-generate it
     const newSurat = {
-      id: maxId + 1, // Use incremental ID based on existing data
       nomor: nomorSurat, // Use the automatically generated number
       tanggal: tanggalSurat,
       tujuan: tujuanSurat,
@@ -247,7 +252,16 @@ export default function InputSuratPage() {
       showSuccessToast('Surat berhasil disimpan!');
     } catch (error) {
       console.error('Error saving surat:', error);
-      showErrorToast('Gagal menyimpan surat: ' + error.message);
+      let errorMessage = 'Gagal menyimpan surat. ';
+      
+      // Check if it's a duplicate key error
+      if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
+        errorMessage += 'Nomor surat sudah ada. Silakan coba lagi atau hubungi administrator.';
+      } else {
+        errorMessage += error.message;
+      }
+      
+      showErrorToast(errorMessage);
     }
     
     // Reset form

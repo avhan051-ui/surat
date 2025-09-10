@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { generateLaporanPDF } from '@/lib/pdf-utils';
 import { generateLaporanExcel } from '@/lib/excel-utils';
+import { createTrendChart, createKategoriChart, createHarianChart } from '@/lib/chart-utils';
+import { Chart } from 'chart.js/auto';
 
 export default function LaporanPage() {
   const { surat, kategoriData } = useAppContext();
@@ -18,6 +20,11 @@ export default function LaporanPage() {
   const trendChartRef = useRef<HTMLCanvasElement>(null);
   const kategoriChartRef = useRef<HTMLCanvasElement>(null);
   const harianChartRef = useRef<HTMLCanvasElement>(null);
+  
+  // Refs for chart instances
+  const trendChartInstance = useRef<Chart | null>(null);
+  const kategoriChartInstance = useRef<Chart | null>(null);
+  const harianChartInstance = useRef<Chart | null>(null);
 
   useEffect(() => {
     // Set default period to current month
@@ -27,6 +34,19 @@ export default function LaporanPage() {
     
     setTanggalDari(firstDay.toISOString().split('T')[0]);
     setTanggalSampai(lastDay.toISOString().split('T')[0]);
+    
+    // Cleanup function to destroy charts when component unmounts
+    return () => {
+      if (trendChartInstance.current) {
+        trendChartInstance.current.destroy();
+      }
+      if (kategoriChartInstance.current) {
+        kategoriChartInstance.current.destroy();
+      }
+      if (harianChartInstance.current) {
+        harianChartInstance.current.destroy();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -76,15 +96,213 @@ export default function LaporanPage() {
 
   // Get top creators
   const getTopCreators = (data: any[]) => {
+    // Pastikan data tidak kosong
+    if (!data || data.length === 0) {
+      return [];
+    }
+    
     const creatorCount: any = {};
     data.forEach(suratItem => {
-      creatorCount[suratItem.pembuat] = (creatorCount[suratItem.pembuat] || 0) + 1;
+      const creator = suratItem.pembuat || 'Tidak Diketahui';
+      creatorCount[creator] = (creatorCount[creator] || 0) + 1;
     });
     
     return Object.entries(creatorCount)
       .sort((a: any, b: any) => b[1] - a[1])
       .slice(0, 5)
       .map(([creator, count]) => ({ creator, count }));
+  };
+
+  // Fungsi untuk menghasilkan data statistik
+  const generateStats = (data: any[]) => {
+    // Pastikan data tidak kosong
+    if (!data || data.length === 0) {
+      return {
+        totalSurat: 0,
+        rataRata: 0,
+        kategoriTop: '-',
+        bulanTop: '-'
+      };
+    }
+    
+    // Total surat
+    const totalSurat = data.length;
+    
+    // Rata-rata per bulan
+    const months = data.reduce((acc: any, suratItem) => {
+      try {
+        const date = new Date(suratItem.tanggal);
+        // Periksa apakah tanggal valid
+        if (isNaN(date.getTime())) {
+          return acc;
+        }
+        const month = date.toLocaleDateString('id-ID', { 
+          month: 'long', 
+          year: 'numeric' 
+        });
+        acc[month] = (acc[month] || 0) + 1;
+      } catch (error) {
+        console.error('Error processing date for stats:', suratItem.tanggal, error);
+      }
+      return acc;
+    }, {});
+    
+    const rataRata = Object.keys(months).length > 0 
+      ? Math.round(totalSurat / Object.keys(months).length) 
+      : 0;
+    
+    // Kategori terbanyak
+    const kategoriCount = data.reduce((acc: any, suratItem) => {
+      const kategoriName = kategoriData[suratItem.kategori]?.name || suratItem.kategori || 'Tidak Diketahui';
+      acc[kategoriName] = (acc[kategoriName] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const kategoriTop = Object.keys(kategoriCount).length > 0 
+      ? Object.entries(kategoriCount).sort((a: any, b: any) => b[1] - a[1])[0][0] 
+      : '-';
+    
+    // Bulan tertinggi
+    const bulanTop = Object.keys(months).length > 0 
+      ? Object.entries(months).sort((a: any, b: any) => b[1] - a[1])[0][0] 
+      : '-';
+    
+    return {
+      totalSurat,
+      rataRata,
+      kategoriTop,
+      bulanTop
+    };
+  };
+
+  // Fungsi untuk menghasilkan data trend bulanan
+  const generateTrendData = (data: any[]) => {
+    const monthlyData: any = {};
+    
+    // Pastikan data tidak kosong
+    if (!data || data.length === 0) {
+      return { labels: [], values: [] };
+    }
+    
+    data.forEach(suratItem => {
+      try {
+        const date = new Date(suratItem.tanggal);
+        // Periksa apakah tanggal valid
+        if (isNaN(date.getTime())) {
+          return;
+        }
+        const month = date.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+        monthlyData[month] = (monthlyData[month] || 0) + 1;
+      } catch (error) {
+        console.error('Error processing date:', suratItem.tanggal, error);
+      }
+    });
+    
+    const labels = Object.keys(monthlyData).sort();
+    const values = labels.map(label => monthlyData[label]);
+    
+    return { labels, values };
+  };
+
+  // Fungsi untuk menghasilkan data kategori
+  const generateKategoriData = (data: any[]) => {
+    const kategoriCount: any = {};
+    
+    // Pastikan data tidak kosong
+    if (!data || data.length === 0) {
+      return { labels: [], values: [] };
+    }
+    
+    data.forEach(suratItem => {
+      const kategoriName = kategoriData[suratItem.kategori]?.name || suratItem.kategori || 'Tidak Diketahui';
+      kategoriCount[kategoriName] = (kategoriCount[kategoriName] || 0) + 1;
+    });
+    
+    const labels = Object.keys(kategoriCount);
+    const values = Object.values(kategoriCount);
+    
+    return { labels, values };
+  };
+
+  // Fungsi untuk menghasilkan data harian
+  const generateHarianData = (data: any[]) => {
+    const dailyData: any = {};
+    
+    // Pastikan data tidak kosong
+    if (!data || data.length === 0) {
+      return { labels: [], values: [] };
+    }
+    
+    data.forEach(suratItem => {
+      try {
+        const date = new Date(suratItem.tanggal);
+        // Periksa apakah tanggal valid
+        if (isNaN(date.getTime())) {
+          return;
+        }
+        const day = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        dailyData[day] = (dailyData[day] || 0) + 1;
+      } catch (error) {
+        console.error('Error processing date:', suratItem.tanggal, error);
+      }
+    });
+    
+    // Urutkan berdasarkan tanggal
+    const sortedEntries = Object.entries(dailyData).sort((a, b) => {
+      const [dayA] = a;
+      const [dayB] = b;
+      return dayA.localeCompare(dayB);
+    });
+    
+    const labels = sortedEntries.map(([day]) => day);
+    const values = sortedEntries.map(([, count]) => count);
+    
+    return { labels, values };
+  };
+
+  // Fungsi untuk menggambar chart
+  const drawCharts = (data: any[]) => {
+    try {
+      // Hapus chart yang ada sebelumnya
+      if (trendChartInstance.current) {
+        trendChartInstance.current.destroy();
+        trendChartInstance.current = null;
+      }
+      if (kategoriChartInstance.current) {
+        kategoriChartInstance.current.destroy();
+        kategoriChartInstance.current = null;
+      }
+      if (harianChartInstance.current) {
+        harianChartInstance.current.destroy();
+        harianChartInstance.current = null;
+      }
+      
+      // Buat trend chart
+      if (trendChartRef.current) {
+        const { labels, values } = generateTrendData(data);
+        if (labels.length > 0 && values.length > 0) {
+          trendChartInstance.current = createTrendChart(trendChartRef.current, labels, values);
+        }
+      }
+      
+      // Buat kategori chart
+      if (kategoriChartRef.current) {
+        const { labels, values } = generateKategoriData(data);
+        if (labels.length > 0 && values.length > 0) {
+          kategoriChartInstance.current = createKategoriChart(kategoriChartRef.current, labels, values);
+        }
+      }
+      
+      // Buat harian chart
+      if (harianChartRef.current) {
+        const { labels, values } = generateHarianData(data);
+        if (labels.length > 0 && values.length > 0) {
+          harianChartInstance.current = createHarianChart(harianChartRef.current, labels, values);
+        }
+      }
+    } catch (error) {
+      console.error('Error drawing charts:', error);
+    }
   };
 
   const generateLaporan = () => {
@@ -99,6 +317,11 @@ export default function LaporanPage() {
       const startDate = new Date(tanggalDari);
       const endDate = new Date(tanggalSampai);
       
+      // Periksa apakah tanggal valid
+      if (isNaN(suratDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return false;
+      }
+      
       let match = suratDate >= startDate && suratDate <= endDate;
       
       if (kategori && suratItem.kategori !== kategori) {
@@ -109,6 +332,11 @@ export default function LaporanPage() {
     });
     
     setLaporanData(filteredData);
+    
+    // Gambar chart
+    setTimeout(() => {
+      drawCharts(filteredData);
+    }, 100);
   };
 
   const handleExportPDF = () => {
@@ -117,13 +345,7 @@ export default function LaporanPage() {
       return;
     }
     
-    // Placeholder stats object
-    const stats = {
-      totalSurat: laporanData.length,
-      rataRata: 0,
-      kategoriTop: '',
-      bulanTop: ''
-    };
+    const stats = generateStats(laporanData);
     
     generateLaporanPDF(
       laporanData, 
@@ -141,13 +363,7 @@ export default function LaporanPage() {
       return;
     }
     
-    // Placeholder stats object
-    const stats = {
-      totalSurat: laporanData.length,
-      rataRata: 0,
-      kategoriTop: '',
-      bulanTop: ''
-    };
+    const stats = generateStats(laporanData);
     
     generateLaporanExcel(
       laporanData, 
@@ -333,6 +549,18 @@ export default function LaporanPage() {
   // Get top creators for display
   const topCreators = getTopCreators(laporanData);
 
+  // Effect untuk menggambar chart ketika laporanData berubah
+  useEffect(() => {
+    if (laporanData.length > 0) {
+      // Gambar chart dengan delay kecil untuk memastikan DOM siap
+      const timer = setTimeout(() => {
+        drawCharts(laporanData);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [laporanData]);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Filter Laporan Card */}
@@ -410,6 +638,163 @@ export default function LaporanPage() {
         </div>
       </div>
 
+      {/* Statistik Overview */}
+      {laporanData.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium mb-2">Total Surat</p>
+                <p className="text-3xl font-bold">{generateStats(laporanData).totalSurat}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <i className="fas fa-envelope text-2xl"></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium mb-2">Rata-rata/Bulan</p>
+                <p className="text-3xl font-bold">{generateStats(laporanData).rataRata}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <i className="fas fa-chart-line text-2xl"></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm font-medium mb-2">Kategori Terbanyak</p>
+                <p className="text-lg font-bold">{generateStats(laporanData).kategoriTop}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <i className="fas fa-trophy text-2xl"></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100 text-sm font-medium mb-2">Bulan Tertinggi</p>
+                <p className="text-lg font-bold">{generateStats(laporanData).bulanTop}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <i className="fas fa-calendar-check text-2xl"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Charts Section */}
+      {laporanData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Grafik Trend Bulanan */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-800">Trend Surat Bulanan</h3>
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <i className="fas fa-chart-line text-blue-600"></i>
+              </div>
+            </div>
+            <div className="h-80">
+              <canvas ref={trendChartRef}></canvas>
+            </div>
+          </div>
+
+          {/* Grafik Kategori */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-800">Distribusi Kategori</h3>
+              <div className="bg-purple-100 p-2 rounded-lg">
+                <i className="fas fa-chart-pie text-purple-600"></i>
+              </div>
+            </div>
+            <div className="h-80">
+              <canvas ref={kategoriChartRef}></canvas>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabel Detail dan Pembuat Surat */}
+      {laporanData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Pembuat Surat */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-800">Top Pembuat Surat</h3>
+              <div className="bg-green-100 p-2 rounded-lg">
+                <i className="fas fa-users text-green-600"></i>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {topCreators.map((creator: any, index: number) => (
+                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                      {index + 1}
+                    </div>
+                    <span className="font-medium text-gray-800">{creator.creator}</span>
+                  </div>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    {creator.count} surat
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tren Harian */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-800">Aktivitas Harian</h3>
+              <div className="bg-orange-100 p-2 rounded-lg">
+                <i className="fas fa-calendar-day text-orange-600"></i>
+              </div>
+            </div>
+            <div className="h-64">
+              <canvas ref={harianChartRef}></canvas>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Laporan */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">Export Laporan</h3>
+            <p className="text-gray-600 text-sm mt-1">Download laporan dalam berbagai format</p>
+          </div>
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+            <button 
+              onClick={handleExportPDF}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+            >
+              <i className="fas fa-file-pdf mr-2"></i>Export PDF
+            </button>
+            <button 
+              onClick={handleExportExcel}
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+            >
+              <i className="fas fa-file-excel mr-2"></i>Export Excel
+            </button>
+            <button 
+              onClick={handlePrint}
+              className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+            >
+              <i className="fas fa-print mr-2"></i>Print
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Tabel Detail */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-6">
@@ -452,36 +837,6 @@ export default function LaporanPage() {
             <p className="text-gray-500">Silakan pilih periode dan klik tombol "Generate" untuk menampilkan laporan</p>
           </div>
         )}
-      </div>
-
-      {/* Export Laporan */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800">Export Laporan</h3>
-            <p className="text-gray-600 text-sm mt-1">Download laporan dalam berbagai format</p>
-          </div>
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-            <button 
-              onClick={handleExportPDF}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-            >
-              <i className="fas fa-file-pdf mr-2"></i>Export PDF
-            </button>
-            <button 
-              onClick={handleExportExcel}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-            >
-              <i className="fas fa-file-excel mr-2"></i>Export Excel
-            </button>
-            <button 
-              onClick={handlePrint}
-              className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-            >
-              <i className="fas fa-print mr-2"></i>Print
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
