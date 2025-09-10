@@ -68,86 +68,114 @@ export default function DashboardLayout({
     router.push('/dashboard/profil');
   };
 
-  // Define menu items with role permissions (this would ideally come from context or API)
-  const menuItems = [
+  // Define menu groups with items
+  const menuGroups = [
     {
-      id: 'dashboard',
-      href: '/dashboard',
-      label: 'Dashboard',
-      icon: 'fa-tachometer-alt',
-      color: 'blue',
-      roles: ['Administrator', 'Operator', 'User'],
-      prefetch: ['surat', 'suratMasuk', 'users', 'kategori']
+      id: 'main',
+      label: 'Utama',
+      items: [
+        {
+          id: 'dashboard',
+          href: '/dashboard',
+          label: 'Dashboard',
+          icon: 'fa-tachometer-alt',
+          color: 'blue',
+          roles: ['Administrator', 'Operator', 'User'],
+          prefetch: ['surat', 'suratMasuk', 'users', 'kategori']
+        }
+      ]
     },
     {
-      id: 'data',
-      href: '/dashboard/data',
-      label: 'Data Surat Keluar',
-      icon: 'fa-table',
-      color: 'purple',
-      roles: ['Administrator', 'Operator', 'User'],
-      prefetch: ['surat', 'kategori']
+      id: 'surat',
+      label: 'Surat',
+      items: [
+        {
+          id: 'data',
+          href: '/dashboard/data',
+          label: 'Data Surat Keluar',
+          icon: 'fa-table',
+          color: 'purple',
+          roles: ['Administrator', 'Operator', 'User'],
+          prefetch: ['surat', 'kategori']
+        },
+        {
+          id: 'surat-masuk',
+          href: '/dashboard/surat-masuk',
+          label: 'Data Surat Masuk',
+          icon: 'fa-envelope-open-text',
+          color: 'blue',
+          roles: ['Administrator', 'Operator', 'User'],
+          prefetch: ['suratMasuk']
+        },
+        {
+          id: 'laporan',
+          href: '/dashboard/laporan',
+          label: 'Laporan',
+          icon: 'fa-chart-bar',
+          color: 'orange',
+          roles: ['Administrator', 'Operator', 'User'],
+          prefetch: ['surat', 'kategori']
+        }
+      ]
     },
     {
-      id: 'surat-masuk',
-      href: '/dashboard/surat-masuk',
-      label: 'Data Surat Masuk',
-      icon: 'fa-envelope-open-text',
-      color: 'blue',
-      roles: ['Administrator', 'Operator', 'User'],
-      prefetch: ['suratMasuk']
+      id: 'management',
+      label: 'Manajemen',
+      items: [
+        {
+          id: 'master-data',
+          href: '/dashboard/master-data',
+          label: 'Master Data',
+          icon: 'fa-database',
+          color: 'indigo',
+          roles: ['Administrator'],
+          prefetch: ['kategori']
+        },
+        {
+          id: 'user',
+          href: '/dashboard/user',
+          label: 'Kelola User',
+          icon: 'fa-users',
+          color: 'teal',
+          roles: ['Administrator'],
+          prefetch: ['users']
+        }
+      ]
     },
     {
-      id: 'master-data',
-      href: '/dashboard/master-data',
-      label: 'Master Data',
-      icon: 'fa-database',
-      color: 'indigo',
-      roles: ['Administrator'],
-      prefetch: ['kategori']
-    },
-    {
-      id: 'laporan',
-      href: '/dashboard/laporan',
-      label: 'Laporan',
-      icon: 'fa-chart-bar',
-      color: 'orange',
-      roles: ['Administrator', 'Operator', 'User'],
-      prefetch: ['surat', 'kategori']
-    },
-    {
-      id: 'user',
-      href: '/dashboard/user',
-      label: 'Kelola User',
-      icon: 'fa-users',
-      color: 'teal',
-      roles: ['Administrator'],
-      prefetch: ['users']
-    },
-    {
-      id: 'pengaturan',
-      href: '/dashboard/pengaturan',
-      label: 'Pengaturan',
-      icon: 'fa-cog',
-      color: 'gray',
-      roles: ['Administrator'],
-      prefetch: []
-    },
-    {
-      id: 'role',
-      href: '/role',
-      label: 'Role',
-      icon: 'fa-user-shield',
-      color: 'blue',
-      roles: ['Administrator'],
-      prefetch: []
-    },
+      id: 'reports',
+      label: 'Laporan & Pengaturan',
+      items: [
+        
+        {
+          id: 'pengaturan',
+          href: '/dashboard/pengaturan',
+          label: 'Pengaturan',
+          icon: 'fa-cog',
+          color: 'gray',
+          roles: ['Administrator'],
+          prefetch: []
+        },
+        {
+          id: 'role',
+          href: '/role',
+          label: 'Role',
+          icon: 'fa-user-shield',
+          color: 'blue',
+          roles: ['Administrator'],
+          prefetch: []
+        }
+      ]
+    }
   ];
 
-  // Filter menu items based on user role
-  const filteredMenuItems = menuItems.filter(item => 
-    item.roles.includes(currentUser?.role || '')
-  );
+  // Filter menu groups and items based on user role
+  const filteredMenuGroups = menuGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => 
+      item.roles.includes(currentUser?.role || '')
+    )
+  })).filter(group => group.items.length > 0); // Only show groups that have visible items
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -177,55 +205,69 @@ export default function DashboardLayout({
 
         <div className="flex flex-col h-[calc(100vh-6rem)] overflow-y-auto">
           <nav className="mt-8 px-4 flex-grow">
-            <div className="space-y-2">
-              {filteredMenuItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    prefetch={true} // Enable Next.js automatic prefetching
-                    onMouseEnter={() => {
-                      // Prefetch data when hovering over menu items
-                      if (item.prefetch && item.prefetch.length > 0) {
-                        item.prefetch.forEach(async (dataType) => {
-                          try {
-                            switch (dataType) {
-                              case 'surat':
-                                await fetch('/api/surat');
-                                break;
-                              case 'users':
-                                await fetch('/api/users');
-                                break;
-                              case 'kategori':
-                                await fetch('/api/kategori');
-                                break;
+            <div className="space-y-6">
+              {filteredMenuGroups.map((group) => (
+                <div key={group.id}>
+                  {/* Group Header */}
+                  <div className="px-4 mb-3">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      {group.label}
+                    </h3>
+                  </div>
+                  
+                  {/* Group Items */}
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.id}
+                          href={item.href}
+                          prefetch={true} // Enable Next.js automatic prefetching
+                          onMouseEnter={() => {
+                            // Prefetch data when hovering over menu items
+                            if (item.prefetch && item.prefetch.length > 0) {
+                              item.prefetch.forEach(async (dataType) => {
+                                try {
+                                  switch (dataType) {
+                                    case 'surat':
+                                      await fetch('/api/surat');
+                                      break;
+                                    case 'users':
+                                      await fetch('/api/users');
+                                      break;
+                                    case 'kategori':
+                                      await fetch('/api/kategori');
+                                      break;
+                                  }
+                                } catch (err) {
+                                  console.log(`Prefetch ${dataType} failed:`, err);
+                                }
+                              });
                             }
-                          } catch (err) {
-                            console.log(`Prefetch ${dataType} failed:`, err);
-                          }
-                        });
-                      }
-                    }}
-                    className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 border ${
-                      active
-                        ? `bg-gradient-to-r from-${item.color}-50 to-${item.color}-50 text-${item.color}-700 border-${item.color}-100`
-                        : 'text-slate-700 border-transparent hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-50'
-                    }`}
-                  >
-                    <div 
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 transition-colors ${
-                        active 
-                          ? `bg-${item.color}-200 text-${item.color}-600` 
-                          : `bg-${item.color}-100 text-${item.color}-600`
-                      }`}
-                    >
-                      <i className={`fas ${item.icon}`}></i>
-                    </div>
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                );
-              })}
+                          }}
+                          className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 border mx-1 ${
+                            active
+                              ? `bg-gradient-to-r from-${item.color}-50 to-${item.color}-50 text-${item.color}-700 border-${item.color}-100`
+                              : 'text-slate-700 border-transparent hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-50'
+                          }`}
+                        >
+                          <div 
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 transition-colors ${
+                              active 
+                                ? `bg-${item.color}-200 text-${item.color}-600` 
+                                : `bg-${item.color}-100 text-${item.color}-600`
+                            }`}
+                          >
+                            <i className={`fas ${item.icon}`}></i>
+                          </div>
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </nav>
 
@@ -272,7 +314,14 @@ export default function DashboardLayout({
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">
-                  {filteredMenuItems.find(item => isActive(item.href))?.label || 'Dashboard'}
+                  {(() => {
+                    // Find the active menu item from all groups
+                    for (const group of filteredMenuGroups) {
+                      const activeItem = group.items.find(item => isActive(item.href));
+                      if (activeItem) return activeItem.label;
+                    }
+                    return 'Dashboard';
+                  })()}
                 </h1>
                 <p className="text-sm lg:text-base text-slate-600 mt-2 font-medium">
                   {pathname === '/dashboard' 
