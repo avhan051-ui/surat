@@ -327,8 +327,10 @@ export default function UserManagementPage() {
               });
               
               // Validasi NIP (18 digit)
-              if (!/^\d{18}$/.test(userData.nip)) {
-                errors.push(`Baris ${i + 1}: NIP harus 18 digit angka`);
+              // if (!/^\d{18}$/.test(userData.nip)) {
+              if (!userData.nip) {
+                // errors.push(`Baris ${i + 1}: NIP harus 18 digit angka`);
+                errors.push(`Baris ${i + 1}: NIP harus di isi`);
                 errorCount++;
                 continue;
               }

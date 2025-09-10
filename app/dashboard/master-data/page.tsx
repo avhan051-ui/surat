@@ -358,9 +358,6 @@ export default function MasterDataPage() {
     });
   };
 
-
-
-
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

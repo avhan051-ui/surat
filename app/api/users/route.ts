@@ -22,8 +22,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Validasi format NIP
-    if (!/^\d{18}$/.test(userData.nip)) {
-      return NextResponse.json({ error: 'NIP must be 18 digits' }, { status: 400 });
+    // if (!/^\d{18}$/.test(userData.nip)) {
+    if (!userData.nip) {
+      // return NextResponse.json({ error: 'NIP must be 18 digits' }, { status: 400 });
+      return NextResponse.json({ error: 'NIP Harus di isi' }, { status: 400 });
+
     }
     
     // Validasi format email jika diisi
@@ -67,8 +70,10 @@ export async function PUT(request: NextRequest) {
     }
     
     // Validasi format NIP
-    if (!/^\d{18}$/.test(userData.nip)) {
-      return NextResponse.json({ error: 'NIP must be 18 digits' }, { status: 400 });
+    // if (!/^\d{18}$/.test(userData.nip)) {
+    if (!userData.nip) {
+      // return NextResponse.json({ error: 'NIP must be 18 digits' }, { status: 400 });
+      return NextResponse.json({ error: 'NIP Harus Di isi' }, { status: 400 });
     }
     
     // Validasi format email jika diisi

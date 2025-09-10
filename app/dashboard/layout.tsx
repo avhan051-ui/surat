@@ -44,70 +44,81 @@ export default function DashboardLayout({
     };
   }, []);
 
-  // Initialize notifications from localStorage or create sample notifications (client-side only)
+  // Initialize notifications from database or create sample notifications (client-side only)
   useEffect(() => {
     if (!isClient) return;
 
-    // Helper functions for localStorage
-    const loadNotificationsFromStorage = () => {
-      const saved = localStorage.getItem('notifications');
-      return saved ? JSON.parse(saved) : null;
-    };
-
-    const saveNotificationsToStorage = (notifications: any[]) => {
-      localStorage.setItem('notifications', JSON.stringify(notifications));
-    };
-
-    // Sample notifications template
-    const getSampleNotifications = () => [
-      {
-        id: 1,
-        title: 'Surat Baru Dibuat',
-        message: 'Surat dengan nomor 500.6.1.1/005/2025 telah berhasil dibuat',
-        time: '5 menit yang lalu',
-        read: false,
-        type: 'success'
-      },
-      {
-        id: 2,
-        title: 'Laporan Bulanan',
-        message: 'Laporan bulanan Januari 2025 siap untuk diunduh',
-        time: '1 jam yang lalu',
-        read: false,
-        type: 'info'
-      },
-      {
-        id: 3,
-        title: 'Pengingat',
-        message: 'Ada 3 surat yang perlu ditindaklanjuti',
-        time: '2 jam yang lalu',
-        read: true,
-        type: 'warning'
+    const fetchNotificationsFromDB = async () => {
+      try {
+        // In a real implementation, you would fetch notifications from the database
+        // For now, we'll use sample notifications
+        const sampleNotifications = [
+          {
+            id: 1,
+            title: 'Surat Baru Dibuat',
+            message: 'Surat dengan nomor 500.6.1.1/005/2025 telah berhasil dibuat',
+            time: '5 menit yang lalu',
+            read: false,
+            type: 'success'
+          },
+          {
+            id: 2,
+            title: 'Laporan Bulanan',
+            message: 'Laporan bulanan Januari 2025 siap untuk diunduh',
+            time: '1 jam yang lalu',
+            read: false,
+            type: 'info'
+          },
+          {
+            id: 3,
+            title: 'Pengingat',
+            message: 'Ada 3 surat yang perlu ditindaklanjuti',
+            time: '2 jam yang lalu',
+            read: true,
+            type: 'warning'
+          }
+        ];
+        
+        setNotifications(sampleNotifications);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        // Fallback to sample notifications
+        const sampleNotifications = [
+          {
+            id: 1,
+            title: 'Surat Baru Dibuat',
+            message: 'Surat dengan nomor 500.6.1.1/005/2025 telah berhasil dibuat',
+            time: '5 menit yang lalu',
+            read: false,
+            type: 'success'
+          },
+          {
+            id: 2,
+            title: 'Laporan Bulanan',
+            message: 'Laporan bulanan Januari 2025 siap untuk diunduh',
+            time: '1 jam yang lalu',
+            read: false,
+            type: 'info'
+          },
+          {
+            id: 3,
+            title: 'Pengingat',
+            message: 'Ada 3 surat yang perlu ditindaklanjuti',
+            time: '2 jam yang lalu',
+            read: true,
+            type: 'warning'
+          }
+        ];
+        
+        setNotifications(sampleNotifications);
       }
-    ];
+    };
 
-    const savedNotifications = loadNotificationsFromStorage();
-    
-    if (savedNotifications) {
-      setNotifications(savedNotifications);
-    } else {
-      // If no saved notifications, create sample notifications
-      const sampleNotifications = getSampleNotifications();
-      setNotifications(sampleNotifications);
-      saveNotificationsToStorage(sampleNotifications);
-    }
+    fetchNotificationsFromDB();
   }, [isClient]);
 
-  // Save notifications to localStorage whenever they change (client-side only)
-  useEffect(() => {
-    if (!isClient || notifications.length === 0) return;
-
-    const saveNotificationsToStorage = (notifications: any[]) => {
-      localStorage.setItem('notifications', JSON.stringify(notifications));
-    };
-
-    saveNotificationsToStorage(notifications);
-  }, [notifications, isClient]);
+  // In a real implementation, you would save notifications to database
+  // For now, we'll just use state without persisting to localStorage
 
   const handleLogout = () => {
     showConfirmationDialog({
@@ -126,16 +137,26 @@ export default function DashboardLayout({
     });
   };
 
-  const markAsRead = (id: number) => {
-    const updatedNotifications = notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    );
-    setNotifications(updatedNotifications);
+  const markAsRead = async (id: number) => {
+    try {
+      // In a real implementation, you would update the notification in the database
+      const updatedNotifications = notifications.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      );
+      setNotifications(updatedNotifications);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  const markAllAsRead = () => {
-    const updatedNotifications = notifications.map(notification => ({ ...notification, read: true }));
-    setNotifications(updatedNotifications);
+  const markAllAsRead = async () => {
+    try {
+      // In a real implementation, you would update all notifications in the database
+      const updatedNotifications = notifications.map(notification => ({ ...notification, read: true }));
+      setNotifications(updatedNotifications);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;

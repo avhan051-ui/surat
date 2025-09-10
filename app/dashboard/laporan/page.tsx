@@ -13,12 +13,6 @@ export default function LaporanPage() {
   const [kategori, setKategori] = useState('');
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [laporanData, setLaporanData] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    totalSurat: 0,
-    rataRata: 0,
-    kategoriTop: '',
-    bulanTop: ''
-  });
   
   // Refs for chart containers
   const trendChartRef = useRef<HTMLCanvasElement>(null);
@@ -33,8 +27,6 @@ export default function LaporanPage() {
     
     setTanggalDari(firstDay.toISOString().split('T')[0]);
     setTanggalSampai(lastDay.toISOString().split('T')[0]);
-    
-    // Don't generate initial report to avoid the alert
   }, []);
 
   useEffect(() => {
@@ -73,13 +65,6 @@ export default function LaporanPage() {
     }
   }, [periode]);
 
-  // Initialize charts when laporanData changes
-  useEffect(() => {
-    if (laporanData.length > 0) {
-      initializeCharts();
-    }
-  }, [laporanData]);
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', {
@@ -100,200 +85,6 @@ export default function LaporanPage() {
       .sort((a: any, b: any) => b[1] - a[1])
       .slice(0, 5)
       .map(([creator, count]) => ({ creator, count }));
-  };
-
-  // Initialize charts
-  const initializeCharts = () => {
-    // Trend chart (monthly)
-    if (trendChartRef.current) {
-      const ctx = trendChartRef.current.getContext('2d');
-      if (ctx) {
-        // Destroy existing chart if it exists
-        if ((trendChartRef.current as any).chart) {
-          (trendChartRef.current as any).chart.destroy();
-        }
-        
-        // Prepare data
-        const monthlyData: any = {};
-        laporanData.forEach(suratItem => {
-          const month = new Date(suratItem.tanggal).toLocaleDateString('id-ID', { 
-            month: 'short', 
-            year: 'numeric' 
-          });
-          monthlyData[month] = (monthlyData[month] || 0) + 1;
-        });
-        
-        const months = Object.keys(monthlyData);
-        const counts = Object.values(monthlyData);
-        
-        // Create chart
-        (trendChartRef.current as any).chart = new (window as any).Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: months,
-            datasets: [{
-              label: 'Jumlah Surat',
-              data: counts,
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              borderWidth: 2,
-              fill: true,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: 'rgba(0, 0, 0, 0.05)'
-                }
-              },
-              x: {
-                grid: {
-                  display: false
-                }
-              }
-            }
-          }
-        });
-      }
-    }
-    
-    // Category chart
-    if (kategoriChartRef.current) {
-      const ctx = kategoriChartRef.current.getContext('2d');
-      if (ctx) {
-        // Destroy existing chart if it exists
-        if ((kategoriChartRef.current as any).chart) {
-          (kategoriChartRef.current as any).chart.destroy();
-        }
-        
-        // Prepare data
-        const kategoriCount: any = {};
-        laporanData.forEach(suratItem => {
-          const kategoriName = kategoriData[suratItem.kategori]?.name || suratItem.kategori;
-          kategoriCount[kategoriName] = (kategoriCount[kategoriName] || 0) + 1;
-        });
-        
-        const labels = Object.keys(kategoriCount);
-        const counts = Object.values(kategoriCount);
-        const colors = [
-          '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', 
-          '#ef4444', '#06b6d4', '#8b5cf6', '#f97316'
-        ];
-        
-        // Create chart
-        (kategoriChartRef.current as any).chart = new (window as any).Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: counts,
-              backgroundColor: colors.slice(0, labels.length),
-              borderWidth: 0
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  padding: 20,
-                  usePointStyle: true
-                }
-              }
-            }
-          }
-        });
-      }
-    }
-    
-    // Daily activity chart
-    if (harianChartRef.current) {
-      const ctx = harianChartRef.current.getContext('2d');
-      if (ctx) {
-        // Destroy existing chart if it exists
-        if ((harianChartRef.current as any).chart) {
-          (harianChartRef.current as any).chart.destroy();
-        }
-        
-        // Prepare data for last 7 days
-        const dailyData: any = {};
-        const today = new Date();
-        
-        // Initialize last 7 days
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(today.getDate() - i);
-          const dateStr = date.toLocaleDateString('id-ID', { 
-            weekday: 'short' 
-          });
-          dailyData[dateStr] = 0;
-        }
-        
-        // Count surat per day
-        laporanData.forEach(suratItem => {
-          const suratDate = new Date(suratItem.tanggal);
-          if (suratDate >= new Date(today.setDate(today.getDate() - 6)) && 
-              suratDate <= new Date()) {
-            const day = suratDate.toLocaleDateString('id-ID', { 
-              weekday: 'short' 
-            });
-            dailyData[day] = (dailyData[day] || 0) + 1;
-          }
-        });
-        
-        const days = Object.keys(dailyData);
-        const counts = Object.values(dailyData);
-        
-        // Create chart
-        (harianChartRef.current as any).chart = new (window as any).Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: days,
-            datasets: [{
-              label: 'Jumlah Surat',
-              data: counts,
-              backgroundColor: '#f59e0b',
-              borderRadius: 4,
-              borderSkipped: false,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: 'rgba(0, 0, 0, 0.05)'
-                }
-              },
-              x: {
-                grid: {
-                  display: false
-                }
-              }
-            }
-          }
-        });
-      }
-    }
   };
 
   const generateLaporan = () => {
@@ -318,47 +109,6 @@ export default function LaporanPage() {
     });
     
     setLaporanData(filteredData);
-    
-    // Update statistik overview
-    updateLaporanStats(filteredData);
-  };
-
-  const updateLaporanStats = (data: any[]) => {
-    const totalSurat = data.length;
-    
-    // Calculate average per month
-    let avgPerMonth = 0;
-    if (totalSurat > 0) {
-      const startDate = new Date(tanggalDari);
-      const endDate = new Date(tanggalSampai);
-      const monthsDiff = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-      avgPerMonth = Math.round(totalSurat / monthsDiff);
-    }
-    
-    // Find top category
-    const kategoriCount: any = {};
-    data.forEach(suratItem => {
-      kategoriCount[suratItem.kategori] = (kategoriCount[suratItem.kategori] || 0) + 1;
-    });
-    
-    const topKategori = Object.entries(kategoriCount).sort((a: any, b: any) => b[1] - a[1])[0];
-    const kategoriName = topKategori ? (kategoriData[topKategori[0] as keyof typeof kategoriData]?.name || topKategori[0]) : '-';
-    
-    // Find top month
-    const monthCount: any = {};
-    data.forEach(suratItem => {
-      const month = new Date(suratItem.tanggal).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-      monthCount[month] = (monthCount[month] || 0) + 1;
-    });
-    
-    const topMonth = Object.entries(monthCount).sort((a: any, b: any) => b[1] - a[1])[0];
-    
-    setStats({
-      totalSurat,
-      rataRata: avgPerMonth,
-      kategoriTop: topKategori ? `${topKategori[0]} (${topKategori[1]})` : '-',
-      bulanTop: topMonth ? `${topMonth[0]} (${topMonth[1]})` : '-'
-    });
   };
 
   const handleExportPDF = () => {
@@ -366,6 +116,14 @@ export default function LaporanPage() {
       alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
       return;
     }
+    
+    // Placeholder stats object
+    const stats = {
+      totalSurat: laporanData.length,
+      rataRata: 0,
+      kategoriTop: '',
+      bulanTop: ''
+    };
     
     generateLaporanPDF(
       laporanData, 
@@ -382,6 +140,14 @@ export default function LaporanPage() {
       alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
       return;
     }
+    
+    // Placeholder stats object
+    const stats = {
+      totalSurat: laporanData.length,
+      rataRata: 0,
+      kategoriTop: '',
+      bulanTop: ''
+    };
     
     generateLaporanExcel(
       laporanData, 
@@ -640,82 +406,6 @@ export default function LaporanPage() {
             >
               <i className="fas fa-chart-bar mr-1"></i>Generate
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grafik Trend Bulanan */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Trend Surat Bulanan</h3>
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <i className="fas fa-chart-line text-blue-600"></i>
-            </div>
-          </div>
-          <div className="h-80">
-            <canvas ref={trendChartRef}></canvas>
-          </div>
-        </div>
-
-        {/* Grafik Kategori */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Distribusi Kategori</h3>
-            <div className="bg-purple-100 p-2 rounded-lg">
-              <i className="fas fa-chart-pie text-purple-600"></i>
-            </div>
-          </div>
-          <div className="h-80">
-            <canvas ref={kategoriChartRef}></canvas>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabel Detail dan Pembuat Surat */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Pembuat Surat */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Top Pembuat Surat</h3>
-            <div className="bg-green-100 p-2 rounded-lg">
-              <i className="fas fa-users text-green-600"></i>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {topCreators.map((creator: any, index: number) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                    {index + 1}
-                  </div>
-                  <span className="font-medium text-gray-800">{creator.creator}</span>
-                </div>
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                  {creator.count} surat
-                </span>
-              </div>
-            ))}
-            {topCreators.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <i className="fas fa-users text-2xl mb-2"></i>
-                <p>Tidak ada data pembuat surat</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tren Harian */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Aktivitas Harian</h3>
-            <div className="bg-orange-100 p-2 rounded-lg">
-              <i className="fas fa-calendar-day text-orange-600"></i>
-            </div>
-          </div>
-          <div className="h-64">
-            <canvas ref={harianChartRef}></canvas>
           </div>
         </div>
       </div>

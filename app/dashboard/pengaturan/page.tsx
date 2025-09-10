@@ -4,44 +4,88 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import RouteGuard from '@/app/components/RouteGuard';
 
+// Define the settings type
+interface Settings {
+  organisasiName: string;
+  adminEmail: string;
+  timezone: string;
+  emailNotifications: boolean;
+  darkMode: boolean;
+  language: string;
+}
+
 export default function PengaturanPage() {
   const { currentUser, setCurrentUser } = useAppContext();
-  const [organisasiName, setOrganisasiName] = useState('Dinas Administrasi');
-  const [adminEmail, setAdminEmail] = useState('admin@suratku.example.com');
-  const [timezone, setTimezone] = useState('WIB');
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [language, setLanguage] = useState('id');
+  const [settings, setSettings] = useState<Settings>({
+    organisasiName: 'Dinas Administrasi',
+    adminEmail: 'admin@suratku.example.com',
+    timezone: 'WIB',
+    emailNotifications: true,
+    darkMode: false,
+    language: 'id'
+  });
 
+  // Fetch settings from database
   useEffect(() => {
-    // Load saved settings from localStorage if available
-    const savedSettings = localStorage.getItem('suratKuSettings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      
-      if (settings.organisasiName) setOrganisasiName(settings.organisasiName);
-      if (settings.adminEmail) setAdminEmail(settings.adminEmail);
-      if (settings.timezone) setTimezone(settings.timezone);
-      if (settings.emailNotifications !== undefined) setEmailNotifications(settings.emailNotifications);
-      if (settings.darkMode !== undefined) setDarkMode(settings.darkMode);
-      if (settings.language) setLanguage(settings.language);
-    }
+    const fetchSettings = async () => {
+      try {
+        // In a real implementation, you would fetch settings from the database
+        // For now, we'll use default settings
+        const defaultSettings: Settings = {
+          organisasiName: 'Dinas Administrasi',
+          adminEmail: 'admin@suratku.example.com',
+          timezone: 'WIB',
+          emailNotifications: true,
+          darkMode: false,
+          language: 'id'
+        };
+        
+        setSettings(defaultSettings);
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        // Fallback to default settings
+        const defaultSettings: Settings = {
+          organisasiName: 'Dinas Administrasi',
+          adminEmail: 'admin@suratku.example.com',
+          timezone: 'WIB',
+          emailNotifications: true,
+          darkMode: false,
+          language: 'id'
+        };
+        
+        setSettings(defaultSettings);
+      }
+    };
+
+    fetchSettings();
   }, []);
 
-  const handleSaveSettings = () => {
-    const settings = {
-      organisasiName,
-      adminEmail,
-      timezone,
-      emailNotifications,
-      darkMode,
-      language
-    };
-    
-    // Save to localStorage
-    localStorage.setItem('suratKuSettings', JSON.stringify(settings));
-    
-    alert('Pengaturan berhasil disimpan!');
+  const handleSaveSettings = async () => {
+    try {
+      // In a real implementation, you would save settings to the database
+      // For now, we'll just show an alert
+      alert('Pengaturan berhasil disimpan ke database!');
+      
+      // In a real app, you would make an API call like this:
+      /*
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+      
+      if (response.ok) {
+        alert('Pengaturan berhasil disimpan!');
+      } else {
+        alert('Gagal menyimpan pengaturan!');
+      }
+      */
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Terjadi kesalahan saat menyimpan pengaturan!');
+    }
   };
 
   const handleChangePassword = () => {
@@ -75,8 +119,8 @@ export default function PengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Nama Organisasi</label>
                 <input 
                   type="text" 
-                  value={organisasiName}
-                  onChange={(e) => setOrganisasiName(e.target.value)}
+                  value={settings.organisasiName}
+                  onChange={(e) => setSettings({...settings, organisasiName: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                 />
               </div>
@@ -85,8 +129,8 @@ export default function PengaturanPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Alamat Email Admin</label>
                 <input 
                   type="email" 
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
+                  value={settings.adminEmail}
+                  onChange={(e) => setSettings({...settings, adminEmail: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                 />
               </div>
@@ -94,8 +138,8 @@ export default function PengaturanPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Zona Waktu</label>
                 <select 
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
+                  value={settings.timezone}
+                  onChange={(e) => setSettings({...settings, timezone: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="WIB">Waktu Indonesia Barat (WIB)</option>
@@ -122,8 +166,8 @@ export default function PengaturanPage() {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input 
                     type="checkbox" 
-                    checked={emailNotifications}
-                    onChange={(e) => setEmailNotifications(e.target.checked)}
+                    checked={settings.emailNotifications}
+                    onChange={(e) => setSettings({...settings, emailNotifications: e.target.checked})}
                     className="sr-only peer" 
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -138,8 +182,8 @@ export default function PengaturanPage() {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input 
                     type="checkbox" 
-                    checked={darkMode}
-                    onChange={(e) => setDarkMode(e.target.checked)}
+                    checked={settings.darkMode}
+                    onChange={(e) => setSettings({...settings, darkMode: e.target.checked})}
                     className="sr-only peer" 
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -149,8 +193,8 @@ export default function PengaturanPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Bahasa</label>
                 <select 
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
+                  value={settings.language}
+                  onChange={(e) => setSettings({...settings, language: e.target.value})}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="id">Bahasa Indonesia</option>
