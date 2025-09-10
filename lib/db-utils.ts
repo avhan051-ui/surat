@@ -51,20 +51,19 @@ export async function createUser(user: User): Promise<User> {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `INSERT INTO users (id, nama, email, nip, password, pangkat_gol, jabatan, role, last_login, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO users (nama, email, nip, password, pangkat_gol, jabatan, role, last_login, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
-        user.id,
         user.nama,
-        user.email,
+        user.email || null, // Allow null for email
         user.nip,
         user.password,
         user.pangkatGol,
         user.jabatan,
         user.role,
-        user.lastLogin,
-        user.createdAt
+        user.lastLogin || null, // Allow null for last_login
+        user.createdAt || new Date().toISOString().split('T')[0] // Use current date if not provided
       ]
     );
     
@@ -81,6 +80,9 @@ export async function createUser(user: User): Promise<User> {
       lastLogin: row.last_login,
       createdAt: row.created_at
     };
+  } catch (error) {
+    console.error('Database error creating user:', error);
+    throw error;
   } finally {
     client.release();
   }

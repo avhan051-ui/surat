@@ -1,15 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-import { useAppContext } from '@/app/context/AppContext';
+import { useState, useRef, useEffect } from 'react';
 import RouteGuard from '@/app/components/RouteGuard';
+import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx';
+
+// Define types
+interface User {
+  id: number;
+  nama: string;
+  email: string;
+  nip: string;
+  password: string;
+  pangkatGol: string;
+  jabatan: string;
+  role: string;
+  lastLogin: string;
+  createdAt: string;
+}
 
 export default function UserManagementPage() {
-  const { users, addUser, updateUser, deleteUser } = useAppContext();
+  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     nama: '',
     nip: '',
@@ -18,6 +33,38 @@ export default function UserManagementPage() {
     email: '',
     role: ''
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/users');
+        if (response.ok) {
+          const userData = await response.json();
+          setUsers(userData);
+        } else {
+          console.error('Failed to fetch users:', response.statusText);
+          Swal.fire({
+            title: 'Error!',
+            text: 'Gagal memuat data pengguna',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        Swal.fire({
+          title: 'Error!',
+          text: 'Terjadi kesalahan saat memuat data pengguna',
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -44,12 +91,6 @@ export default function UserManagementPage() {
     );
   };
 
-  const handleSearch = () => {
-    // In a real app, you would filter the users in the context
-    // For now, we'll just show an alert
-    alert('Filter functionality would be implemented here');
-  };
-
   const handleAddUser = () => {
     setEditingUser(null);
     setFormData({
@@ -63,7 +104,7 @@ export default function UserManagementPage() {
     setShowModal(true);
   };
 
-  const handleEditUser = (user: any) => {
+  const handleEditUser = (user: User) => {
     setEditingUser(user);
     setFormData({
       nama: user.nama,
@@ -77,64 +118,333 @@ export default function UserManagementPage() {
   };
 
   const handleDeleteUser = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
-      deleteUser(id);
-      alert('Pengguna berhasil dihapus!');
-    }
+    Swal.fire({
+      title: 'Konfirmasi',
+      text: 'Apakah Anda yakin ingin menghapus pengguna ini?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch(`/api/users?id=${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (response.ok) {
+            // Update local state
+            setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
+            Swal.fire({
+              title: 'Berhasil!',
+              text: 'Pengguna berhasil dihapus!',
+              icon: 'success',
+              confirmButtonText: 'OK'
+            });
+          } else {
+            const errorData = await response.json();
+            Swal.fire({
+              title: 'Error!',
+              text: errorData.error || 'Gagal menghapus pengguna',
+              icon: 'error',
+              confirmButtonText: 'OK'
+            });
+          }
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          Swal.fire({
+            title: 'Error!',
+            text: 'Terjadi kesalahan saat menghapus pengguna',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+        }
+      }
+    });
   };
 
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     // Validate NIP format (18 digits)
     if (!/^\d{18}$/.test(formData.nip)) {
-      alert('NIP harus berupa 18 digit angka!');
-      return;
-    }
-
-    // Check NIP uniqueness
-    const existingUserByNip = users.find(u => u.nip === formData.nip && u.id !== editingUser?.id);
-    if (existingUserByNip) {
-      alert('NIP sudah digunakan oleh pengguna lain!');
-      return;
-    }
-
-    // Check email uniqueness if email is provided
-    if (formData.email) {
-      const existingUserByEmail = users.find(u => u.email === formData.email && u.id !== editingUser?.id);
-      if (existingUserByEmail) {
-        alert('Email sudah digunakan oleh pengguna lain!');
-        return;
-      }
-    }
-
-    if (editingUser) {
-      // Update existing user
-      updateUser(editingUser.id, {
-        ...editingUser,
-        ...formData
+      Swal.fire({
+        title: 'Validasi Gagal',
+        text: 'NIP harus berupa 18 digit angka!',
+        icon: 'error',
+        confirmButtonText: 'OK'
       });
-      alert('Data pengguna berhasil diperbarui!');
-    } else {
-      // Add new user
-      const newUser = {
-        id: Date.now(),
-        ...formData,
-        password: '123', // Default password
-        lastLogin: '-',
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-      addUser(newUser);
-      alert('Pengguna baru berhasil ditambahkan dengan password default: 123');
+      return;
     }
 
-    setShowModal(false);
-  };
+    try {
+      if (editingUser) {
+        // Update existing user
+        const response = await fetch('/api/users', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: editingUser.id,
+            ...formData,
+            password: editingUser.password, // Keep existing password
+            lastLogin: editingUser.lastLogin, // Keep existing lastLogin
+            createdAt: editingUser.createdAt // Keep existing createdAt
+          })
+        });
 
-  const handleExportExcel = () => {
-    alert('Export Excel functionality would be implemented here');
+        if (response.ok) {
+          const updatedUser = await response.json();
+          // Update local state
+          setUsers(prevUsers => 
+            prevUsers.map(user => user.id === editingUser.id ? updatedUser : user)
+          );
+          Swal.fire({
+            title: 'Berhasil!',
+            text: 'Data pengguna berhasil diperbarui!',
+            icon: 'success',
+            confirmButtonText: 'OK'
+          });
+        } else {
+          const errorData = await response.json();
+          Swal.fire({
+            title: 'Error!',
+            text: errorData.error || 'Gagal memperbarui pengguna',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+          return;
+        }
+      } else {
+        // Add new user
+        const newUser = {
+          ...formData,
+          password: '123', // Default password
+          lastLogin: null, // Gunakan null daripada '-'
+          createdAt: new Date().toISOString().split('T')[0]
+        };
+
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newUser)
+        });
+
+        if (response.ok) {
+          const createdUser = await response.json();
+          // Update local state
+          setUsers(prevUsers => [...prevUsers, createdUser]);
+          Swal.fire({
+            title: 'Berhasil!',
+            text: 'Pengguna baru berhasil ditambahkan dengan password default: 123',
+            icon: 'success',
+            confirmButtonText: 'OK'
+          });
+        } else {
+          const errorData = await response.json();
+          Swal.fire({
+            title: 'Error!',
+            text: errorData.error || 'Gagal menambahkan pengguna',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+          return;
+        }
+      }
+
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error saving user:', error);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Terjadi kesalahan saat menyimpan data pengguna',
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+    }
   };
 
   const handleImportExcel = () => {
-    alert('Import Excel functionality would be implemented here');
+    // Membuat input file tersembunyi
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx, .xls';
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const data = new Uint8Array(event.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            // Pastikan file memiliki data
+            if (jsonData.length <= 1) {
+              Swal.fire({
+                title: 'Error!',
+                text: 'File Excel kosong atau tidak memiliki data.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+              });
+              return;
+            }
+            
+            // Proses header dan data
+            const headers = jsonData[0] as string[];
+            const requiredHeaders = ['nama', 'nip', 'pangkatGol', 'jabatan', 'email', 'role'];
+            
+            // Cek apakah semua header yang diperlukan ada
+            const missingHeaders = requiredHeaders.filter(header => 
+              !headers.includes(header)
+            );
+            
+            if (missingHeaders.length > 0) {
+              Swal.fire({
+                title: 'Error!',
+                text: `File Excel tidak memiliki kolom yang diperlukan: ${missingHeaders.join(', ')}`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+              });
+              return;
+            }
+            
+            // Proses data pengguna
+            let successCount = 0;
+            let errorCount = 0;
+            const errors: string[] = [];
+            
+            for (let i = 1; i < jsonData.length; i++) {
+              const row = jsonData[i] as any[];
+              const userData: any = {};
+              
+              // Mapping data dari row ke objek user
+              headers.forEach((header, index) => {
+                userData[header] = row[index] || '';
+              });
+              
+              // Validasi NIP (18 digit)
+              if (!/^\d{18}$/.test(userData.nip)) {
+                errors.push(`Baris ${i + 1}: NIP harus 18 digit angka`);
+                errorCount++;
+                continue;
+              }
+              
+              // Cek duplikasi NIP (dari data yang sudah ada)
+              const existingUserByNip = users.find(u => u.nip === userData.nip);
+              if (existingUserByNip) {
+                errors.push(`Baris ${i + 1}: NIP ${userData.nip} sudah digunakan`);
+                errorCount++;
+                continue;
+              }
+              
+              // Validasi email (jika diisi)
+              if (userData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+                errors.push(`Baris ${i + 1}: Format email tidak valid`);
+                errorCount++;
+                continue;
+              }
+              
+              // Cek duplikasi email jika ada (dari data yang sudah ada)
+              if (userData.email) {
+                const existingUserByEmail = users.find(u => u.email === userData.email);
+                if (existingUserByEmail) {
+                  errors.push(`Baris ${i + 1}: Email ${userData.email} sudah digunakan`);
+                  errorCount++;
+                  continue;
+                }
+              }
+              
+              // Validasi role
+              const validRoles = ['Administrator', 'Operator', 'User'];
+              if (!validRoles.includes(userData.role)) {
+                errors.push(`Baris ${i + 1}: Role tidak valid. Harus salah satu dari: ${validRoles.join(', ')}`);
+                errorCount++;
+                continue;
+              }
+              
+              // Tambahkan user baru ke database
+              try {
+                const newUser = {
+                  nama: userData.nama,
+                  nip: userData.nip,
+                  pangkatGol: userData.pangkatGol,
+                  jabatan: userData.jabatan,
+                  email: userData.email || '', // Pastikan email tidak undefined
+                  role: userData.role,
+                  password: '123', // Default password
+                  lastLogin: null, // Gunakan null daripada '-'
+                  createdAt: new Date().toISOString().split('T')[0] // Default value
+                };
+
+                const response = await fetch('/api/users', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(newUser)
+                });
+
+                if (response.ok) {
+                  const createdUser = await response.json();
+                  // Update local state
+                  setUsers(prevUsers => [...prevUsers, createdUser]);
+                  successCount++;
+                } else {
+                  const errorData = await response.json();
+                  // Tampilkan pesan error yang lebih spesifik
+                  const errorMessage = errorData.error || 'Gagal menambahkan pengguna';
+                  errors.push(`Baris ${i + 1}: ${errorMessage}`);
+                  errorCount++;
+                }
+              } catch (error) {
+                errors.push(`Baris ${i + 1}: Terjadi kesalahan saat menambahkan pengguna: ${(error as Error).message}`);
+                errorCount++;
+              }
+            }
+            
+            // Tampilkan hasil
+            let resultMessage = `Import selesai: ${successCount} berhasil, ${errorCount} gagal.`;
+            if (errors.length > 0) {
+              resultMessage += '\n\nError:\n' + errors.slice(0, 5).join('\n'); // Tampilkan maksimal 5 error
+              if (errors.length > 5) {
+                resultMessage += `\n...dan ${errors.length - 5} error lainnya`;
+              }
+            }
+            
+            Swal.fire({
+              title: successCount > 0 ? 'Import Berhasil!' : 'Import Selesai',
+              text: resultMessage,
+              icon: successCount > 0 ? 'success' : 'warning',
+              confirmButtonText: 'OK'
+            });
+          } catch (error) {
+            Swal.fire({
+              title: 'Error!',
+              text: 'Terjadi kesalahan saat membaca file Excel: ' + (error as Error).message,
+              icon: 'error',
+              confirmButtonText: 'OK'
+            });
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleSearch = () => {
+    // In a real app, you would filter the users in the context
+    // For now, we'll just show a SweetAlert
+    Swal.fire({
+      title: 'Fitur Filter',
+      text: 'Filter functionality would be implemented here',
+      icon: 'info',
+      confirmButtonText: 'OK'
+    });
   };
 
   return (
@@ -159,12 +469,6 @@ export default function UserManagementPage() {
                 className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
               >
                 <i className="fas fa-file-excel mr-2"></i>Import Excel
-              </button>
-              <button 
-                onClick={handleExportExcel}
-                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-              >
-                <i className="fas fa-download mr-2"></i>Export Data
               </button>
             </div>
           </div>
