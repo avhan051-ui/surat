@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 export default function DataSuratPage() {
-  const { surat, kategoriData, deleteSurat, updateSurat, users } = useAppContext();
+  const { surat, kategoriData, deleteSurat, updateSurat, users, currentUser } = useAppContext();
   const [dataSurat, setDataSurat] = useState(surat);
   const [filterKategori, setFilterKategori] = useState('');
   const [filterTanggalDari, setFilterTanggalDari] = useState('');
@@ -204,6 +204,12 @@ export default function DataSuratPage() {
   };
 
   const handleEdit = (suratItem: any) => {
+    // For regular users, only allow viewing (not editing)
+    if (currentUser?.role !== 'Administrator' && currentUser?.role !== 'Operator') {
+      // Show a message that they can only view
+      showWarningToast('Anda hanya dapat melihat detail surat. Silakan hubungi administrator untuk mengedit surat.');
+    }
+    
     // Parse category information from nomor surat
     const { kategori, subKategori, rincian } = parseNomorSurat(suratItem.nomor);
     
@@ -239,6 +245,12 @@ export default function DataSuratPage() {
   };
 
   const handleDelete = (id: number) => {
+    // Check if user has permission to delete
+    if (currentUser?.role !== 'Administrator' && currentUser?.role !== 'Operator') {
+      showErrorToast('Anda tidak memiliki izin untuk menghapus surat');
+      return;
+    }
+    
     showConfirmationDialog({
       title: 'Apakah Anda yakin?',
       text: 'Data surat yang dihapus tidak dapat dikembalikan!',
@@ -272,6 +284,12 @@ export default function DataSuratPage() {
 
   const handleUpdateSurat = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if user has permission to edit
+    if (currentUser?.role !== 'Administrator' && currentUser?.role !== 'Operator') {
+      showErrorToast('Anda tidak memiliki izin untuk mengedit surat');
+      return;
+    }
     
     if (!editingSurat) return;
     
@@ -434,18 +452,29 @@ export default function DataSuratPage() {
                   <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-md truncate">{suratItem.perihal}</td>
                   <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{suratItem.pembuat}</td>
                   <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button 
-                      onClick={() => handleEdit(suratItem)}
-                      className="text-blue-600 hover:text-blue-800 mr-3 transition-colors"
-                    >
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(suratItem.id)}
-                      className="text-red-600 hover:text-red-800 transition-colors"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
+                    {currentUser?.role === 'Administrator' || currentUser?.role === 'Operator' ? (
+                      <>
+                        <button 
+                          onClick={() => handleEdit(suratItem)}
+                          className="text-blue-600 hover:text-blue-800 mr-3 transition-colors"
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(suratItem.id)}
+                          className="text-red-600 hover:text-red-800 transition-colors"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </>
+                    ) : (
+                      <button 
+                        onClick={() => handleEdit(suratItem)}
+                        className="text-blue-600 hover:text-blue-800 mr-3 transition-colors"
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -471,182 +500,280 @@ export default function DataSuratPage() {
             </div>
 
             <div className="p-6">
-              <form onSubmit={handleUpdateSurat} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {currentUser?.role === 'Administrator' || currentUser?.role === 'Operator' ? (
+                <form onSubmit={handleUpdateSurat} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
+                      <input 
+                        type="text" 
+                        value={`${editingSurat.kategori || 'XXX'}.${editSubKategori || 'X'}.${editRincian || 'X'}/${editNomorUrut || 'XXX'}${editingSurat.tanggal ? `/${new Date(editingSurat.tanggal).getFullYear()}` : ''}`}
+                        onChange={(e) => {
+                          // Extract nomor urut from the input
+                          const parts = e.target.value.split('/');
+                          if (parts.length > 1) {
+                            setEditNomorUrut(parts[1]);
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                        required
+                        readOnly
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Nomor surat otomatis berdasarkan kategori yang dipilih</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Urut</label>
+                      <input 
+                        type="text" 
+                        value={editNomorUrut}
+                        onChange={(e) => setEditNomorUrut(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        required
+                        placeholder="001"
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
+                    <input 
+                      type="date" 
+                      value={editingSurat.tanggal}
+                      onChange={(e) => setEditingSurat({...editingSurat, tanggal: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tujuan Surat</label>
                     <input 
                       type="text" 
-                      value={`${editingSurat.kategori || 'XXX'}.${editSubKategori || 'X'}.${editRincian || 'X'}/${editNomorUrut || 'XXX'}${editingSurat.tanggal ? `/${new Date(editingSurat.tanggal).getFullYear()}` : ''}`}
-                      onChange={(e) => {
-                        // Extract nomor urut from the input
-                        const parts = e.target.value.split('/');
-                        if (parts.length > 1) {
-                          setEditNomorUrut(parts[1]);
-                        }
-                      }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
-                      required
-                      readOnly
-                    />
-                    <p className="mt-1 text-xs text-gray-500">Nomor surat otomatis berdasarkan kategori yang dipilih</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Urut</label>
-                    <input 
-                      type="text" 
-                      value={editNomorUrut}
-                      onChange={(e) => setEditNomorUrut(e.target.value)}
+                      value={editingSurat.tujuan}
+                      onChange={(e) => setEditingSurat({...editingSurat, tujuan: e.target.value})}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       required
-                      placeholder="001"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
-                  <input 
-                    type="date" 
-                    value={editingSurat.tanggal}
-                    onChange={(e) => setEditingSurat({...editingSurat, tanggal: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tujuan Surat</label>
-                  <input 
-                    type="text" 
-                    value={editingSurat.tujuan}
-                    onChange={(e) => setEditingSurat({...editingSurat, tujuan: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Perihal/Keterangan</label>
-                  <textarea 
-                    value={editingSurat.perihal}
-                    onChange={(e) => setEditingSurat({...editingSurat, perihal: e.target.value})}
-                    rows={3} 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                    required
-                  ></textarea>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
-                    <select 
-                      value={editingSurat?.kategori || ''}
-                      onChange={(e) => {
-                        setEditingSurat(prev => ({...prev, kategori: e.target.value}));
-                        setEditSubKategori(''); // Reset sub-kategori when main category changes
-                        setEditRincian(''); // Reset rincian when main category changes
-                      }}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Perihal/Keterangan</label>
+                    <textarea 
+                      value={editingSurat.perihal}
+                      onChange={(e) => setEditingSurat({...editingSurat, perihal: e.target.value})}
+                      rows={3} 
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       required
-                    >
-                      <option value="">Pilih Kategori</option>
-                      {Object.entries(kategoriData).map(([key, value]) => (
-                        <option key={key} value={key}>
-                          {key} - {value.name}
-                        </option>
-                      ))}
-                    </select>
+                    ></textarea>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
-                    <select 
-                      value={editSubKategori}
-                      onChange={(e) => {
-                        setEditSubKategori(e.target.value);
-                        setEditRincian(''); // Reset rincian when sub-category changes
-                      }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                      required
-                      disabled={!editingSurat?.kategori}
-                    >
-                      <option value="">Pilih Sub Kategori</option>
-                      {editingSurat?.kategori && kategoriData[editingSurat.kategori]?.sub && 
-                        Object.entries(kategoriData[editingSurat.kategori].sub).map(([key, value]: [string, any]) => (
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
+                      <select 
+                        value={editingSurat?.kategori || ''}
+                        onChange={(e) => {
+                          setEditingSurat(prev => ({...prev, kategori: e.target.value}));
+                          setEditSubKategori(''); // Reset sub-kategori when main category changes
+                          setEditRincian(''); // Reset rincian when main category changes
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        required
+                      >
+                        <option value="">Pilih Kategori</option>
+                        {Object.entries(kategoriData).map(([key, value]) => (
                           <option key={key} value={key}>
                             {key} - {value.name}
                           </option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
-                    <select 
-                      value={editRincian}
-                      onChange={(e) => setEditRincian(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                      required
-                      disabled={!editSubKategori}
-                    >
-                      <option value="">Pilih Rincian</option>
-                      {editingSurat?.kategori && editSubKategori && 
-                       kategoriData[editingSurat.kategori]?.sub?.[editSubKategori]?.rincian &&
-                        Object.entries(kategoriData[editingSurat.kategori].sub[editSubKategori].rincian).map(([key, value]: [string, any]) => (
-                          <option key={key} value={key}>
-                            {key} - {value}
-                          </option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
-                    <select 
-                      value={editingSurat.pembuatId}
-                      onChange={(e) => {
-                        const userId = parseInt(e.target.value);
-                        const user = users.find(u => u.id === userId);
-                        if (user) {
-                          setEditingSurat({
-                            ...editingSurat,
-                            pembuatId: userId,
-                            pembuat: user.nama
-                          });
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
+                      <select 
+                        value={editSubKategori}
+                        onChange={(e) => {
+                          setEditSubKategori(e.target.value);
+                          setEditRincian(''); // Reset rincian when sub-category changes
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        required
+                        disabled={!editingSurat?.kategori}
+                      >
+                        <option value="">Pilih Sub Kategori</option>
+                        {editingSurat?.kategori && kategoriData[editingSurat.kategori]?.sub && 
+                          Object.entries(kategoriData[editingSurat.kategori].sub).map(([key, value]: [string, any]) => (
+                            <option key={key} value={key}>
+                              {key} - {value.name}
+                            </option>
+                          ))
                         }
-                      }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                      required
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
+                      <select 
+                        value={editRincian}
+                        onChange={(e) => setEditRincian(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        required
+                        disabled={!editSubKategori}
+                      >
+                        <option value="">Pilih Rincian</option>
+                        {editingSurat?.kategori && editSubKategori && 
+                         kategoriData[editingSurat.kategori]?.sub?.[editSubKategori]?.rincian &&
+                          Object.entries(kategoriData[editingSurat.kategori].sub[editSubKategori].rincian).map(([key, value]: [string, any]) => (
+                            <option key={key} value={key}>
+                              {key} - {value}
+                            </option>
+                          ))
+                        }
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
+                      <select 
+                        value={editingSurat.pembuatId}
+                        onChange={(e) => {
+                          const userId = parseInt(e.target.value);
+                          const user = users.find(u => u.id === userId);
+                          if (user) {
+                            setEditingSurat({
+                              ...editingSurat,
+                              pembuatId: userId,
+                              pembuat: user.nama
+                            });
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        required
+                      >
+                        <option value="">Pilih Pembuat</option>
+                        {users.map(user => (
+                          <option key={user.id} value={user.id}>
+                            {user.nama} - {user.jabatan}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowEditModal(false)}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <option value="">Pilih Pembuat</option>
-                      {users.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.nama} - {user.jabatan}
-                        </option>
-                      ))}
-                    </select>
+                      Batal
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
+                    >
+                      <i className="fas fa-save mr-2"></i>Simpan Perubahan
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                // View-only mode for regular users
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Surat</label>
+                      <input 
+                        type="text" 
+                        value={editingSurat.nomor}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Surat</label>
+                      <input 
+                        type="text" 
+                        value={formatDate(editingSurat.tanggal)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                        readOnly
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tujuan Surat</label>
+                    <input 
+                      type="text" 
+                      value={editingSurat.tujuan}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Perihal/Keterangan</label>
+                    <textarea 
+                      value={editingSurat.perihal}
+                      rows={3} 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                      readOnly
+                    ></textarea>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
+                      <input 
+                        type="text" 
+                        value={`${editingSurat.kategori} - ${kategoriData[editingSurat.kategori]?.name || ''}`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
+                      <input 
+                        type="text" 
+                        value={`${editSubKategori} - ${kategoriData[editingSurat.kategori]?.sub?.[editSubKategori]?.name || ''}`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
+                      <input 
+                        type="text" 
+                        value={`${editRincian} - ${kategoriData[editingSurat.kategori]?.sub?.[editSubKategori]?.rincian?.[editRincian] || ''}`}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                        readOnly
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
+                      <input 
+                        type="text" 
+                        value={editingSurat.pembuat}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100" 
+                        readOnly
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowEditModal(false)}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Tutup
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowEditModal(false)}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg"
-                  >
-                    <i className="fas fa-save mr-2"></i>Simpan Perubahan
-                  </button>
-                </div>
-              </form>
+              )}
             </div>
           </div>
         </div>
