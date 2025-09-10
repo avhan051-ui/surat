@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppContext } from '@/app/context/AppContext';
@@ -12,7 +12,27 @@ export default function LoginPage() {
   const router = useRouter();
   const { users, setCurrentUser } = useAppContext();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Check if user is already logged in
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('currentUser='));
+      
+      if (cookieValue) {
+        try {
+          const user = JSON.parse(decodeURIComponent(cookieValue.split('=')[1]));
+          if (user) {
+            router.push('/dashboard');
+          }
+        } catch (e) {
+          console.error('Error parsing user from cookie:', e);
+        }
+      }
+    }
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Find user by NIP
@@ -29,18 +49,55 @@ export default function LoginPage() {
       return;
     }
     
-    // Set current user
-    setCurrentUser(user);
-    
-    // Set cookie for authentication
-    document.cookie = `currentUser=${JSON.stringify(user)}; path=/; max-age=${rememberMe ? 30*24*60*60 : 24*60*60}`;
-    
-    // Update last login
-    const now = new Date().toISOString();
-    user.lastLogin = now;
-    
-    // Redirect to dashboard
-    router.push('/dashboard');
+    // Update last login in database
+    try {
+      const now = new Date().toISOString();
+      const updatedUser = {
+        ...user,
+        lastLogin: now
+      };
+      
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: user.id,
+          ...updatedUser
+        }),
+      });
+      
+      if (response.ok) {
+        const updatedUserFromApi = await response.json();
+        // Set current user with updated lastLogin
+        setCurrentUser(updatedUserFromApi);
+        
+        // Set cookie for authentication
+        const cookieValue = encodeURIComponent(JSON.stringify(updatedUserFromApi));
+        const maxAge = rememberMe ? 30*24*60*60 : 24*60*60; // 30 days or 1 day
+        document.cookie = `currentUser=${cookieValue}; path=/; max-age=${maxAge}; SameSite=Lax`;
+        
+        // Redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        console.error('Failed to update user last login');
+        // Still login even if update fails
+        setCurrentUser(user);
+        const cookieValue = encodeURIComponent(JSON.stringify(user));
+        const maxAge = rememberMe ? 30*24*60*60 : 24*60*60;
+        document.cookie = `currentUser=${cookieValue}; path=/; max-age=${maxAge}; SameSite=Lax`;
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error updating user last login:', error);
+      // Still login even if update fails
+      setCurrentUser(user);
+      const cookieValue = encodeURIComponent(JSON.stringify(user));
+      const maxAge = rememberMe ? 30*24*60*60 : 24*60*60;
+      document.cookie = `currentUser=${cookieValue}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      router.push('/dashboard');
+    }
   };
 
   return (

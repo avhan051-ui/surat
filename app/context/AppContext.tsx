@@ -250,8 +250,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           console.error('Failed to fetch surat data:', suratResponse.statusText);
         }
         
-        // Note: We're not fetching users from the API in this implementation
-        // as the current UI doesn't require dynamic user management
+        // Fetch users data from the API
+        const usersResponse = await fetch('/api/users');
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json();
+          setUsers(usersData);
+        } else {
+          console.error('Failed to fetch users data:', usersResponse.statusText);
+        }
       } catch (error) {
         console.error('Error fetching data from PostgreSQL:', error);
       }
@@ -271,6 +277,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setCurrentUserState(user);
         } catch (e) {
           console.error('Error parsing user from cookie:', e);
+          // Clear invalid cookie
+          document.cookie = 'currentUser=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         }
       }
     }
@@ -402,8 +410,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     
     if (typeof window !== 'undefined') {
       if (user) {
-        // Set cookie for authentication
-        document.cookie = `currentUser=${JSON.stringify(user)}; path=/; max-age=24*60*60`;
+        // Set cookie for authentication with proper encoding
+        const cookieValue = encodeURIComponent(JSON.stringify(user));
+        document.cookie = `currentUser=${cookieValue}; path=/; max-age=24*60*60; SameSite=Lax`;
       } else {
         // Remove cookie
         document.cookie = 'currentUser=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -413,8 +422,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setCurrentUserState(null);
-    // Redirect to login page
+    // Remove cookie
     if (typeof window !== 'undefined') {
+      document.cookie = 'currentUser=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      // Redirect to login page
       window.location.href = '/login';
     }
   };

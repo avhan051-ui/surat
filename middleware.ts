@@ -14,6 +14,10 @@ export function middleware(request: NextRequest) {
   
   // Allow access to login page for everyone
   if (request.nextUrl.pathname === '/login') {
+    // If user is already logged in, redirect to dashboard
+    if (currentUser) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
     return NextResponse.next();
   }
   
@@ -44,6 +48,7 @@ function getCurrentUser(request: NextRequest) {
     try {
       return JSON.parse(decodeURIComponent(cookieValue));
     } catch (e) {
+      console.error('Error parsing user from cookie:', e);
       return null;
     }
   }
