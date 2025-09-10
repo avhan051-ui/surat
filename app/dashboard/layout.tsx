@@ -12,10 +12,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [isClient, setIsClient] = useState(false);
-  const notificationsRef = useRef<HTMLDivElement>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, setCurrentUser, surat } = useAppContext();
@@ -30,11 +29,11 @@ export default function DashboardLayout({
     setSidebarOpen(false);
   }, [pathname]);
 
-  // Close notifications when clicking outside
+  // Close profile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setNotificationsOpen(false);
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
       }
     };
 
@@ -43,79 +42,6 @@ export default function DashboardLayout({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  // Initialize notifications from database or create sample notifications (client-side only)
-  useEffect(() => {
-    if (!isClient) return;
-
-    const fetchNotificationsFromDB = async () => {
-      try {
-        // In a real implementation, you would fetch notifications from the database
-        // For now, we'll use sample notifications
-        const sampleNotifications = [
-          {
-            id: 1,
-            title: 'Surat Baru Dibuat',
-            message: 'Surat dengan nomor 500.6.1.1/005/2025 telah berhasil dibuat',
-            time: '5 menit yang lalu',
-            read: false,
-            type: 'success'
-          },
-          {
-            id: 2,
-            title: 'Laporan Bulanan',
-            message: 'Laporan bulanan Januari 2025 siap untuk diunduh',
-            time: '1 jam yang lalu',
-            read: false,
-            type: 'info'
-          },
-          {
-            id: 3,
-            title: 'Pengingat',
-            message: 'Ada 3 surat yang perlu ditindaklanjuti',
-            time: '2 jam yang lalu',
-            read: true,
-            type: 'warning'
-          }
-        ];
-        
-        setNotifications(sampleNotifications);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-        // Fallback to sample notifications
-        const sampleNotifications = [
-          {
-            id: 1,
-            title: 'Surat Baru Dibuat',
-            message: 'Surat dengan nomor 500.6.1.1/005/2025 telah berhasil dibuat',
-            time: '5 menit yang lalu',
-            read: false,
-            type: 'success'
-          },
-          {
-            id: 2,
-            title: 'Laporan Bulanan',
-            message: 'Laporan bulanan Januari 2025 siap untuk diunduh',
-            time: '1 jam yang lalu',
-            read: false,
-            type: 'info'
-          },
-          {
-            id: 3,
-            title: 'Pengingat',
-            message: 'Ada 3 surat yang perlu ditindaklanjuti',
-            time: '2 jam yang lalu',
-            read: true,
-            type: 'warning'
-          }
-        ];
-        
-        setNotifications(sampleNotifications);
-      }
-    };
-
-    fetchNotificationsFromDB();
-  }, [isClient]);
 
   // In a real implementation, you would save notifications to database
   // For now, we'll just use state without persisting to localStorage
@@ -137,29 +63,10 @@ export default function DashboardLayout({
     });
   };
 
-  const markAsRead = async (id: number) => {
-    try {
-      // In a real implementation, you would update the notification in the database
-      const updatedNotifications = notifications.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
-      );
-      setNotifications(updatedNotifications);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
+  const handleProfileClick = () => {
+    // Navigate to profile page or open profile modal
+    router.push('/dashboard/profil');
   };
-
-  const markAllAsRead = async () => {
-    try {
-      // In a real implementation, you would update all notifications in the database
-      const updatedNotifications = notifications.map(notification => ({ ...notification, read: true }));
-      setNotifications(updatedNotifications);
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   // Define menu items with role permissions (this would ideally come from context or API)
   const menuItems = [
@@ -374,92 +281,65 @@ export default function DashboardLayout({
                 </p>
               </div>
               <div className="flex items-center space-x-6">
-                {/* Notification Bell - only render on client */}
+                {/* Profile Menu - only render on client */}
                 {isClient && (
-                  <div className="relative" ref={notificationsRef}>
+                  <div className="relative" ref={profileMenuRef}>
                     <button 
-                      onClick={() => setNotificationsOpen(!notificationsOpen)}
-                      className="bg-slate-100 hover:bg-slate-200 p-3 rounded-xl transition-all duration-200 shadow-sm relative"
+                      onClick={() => setShowProfileMenu(!showProfileMenu)}
+                      className="flex items-center space-x-3 bg-slate-100 hover:bg-slate-200 p-2 rounded-xl transition-all duration-200 shadow-sm"
                     >
-                      <i className="fas fa-bell text-slate-600"></i>
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-semibold shadow-lg">
-                          {unreadCount}
-                        </span>
-                      )}
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                        <i className="fas fa-user text-white"></i>
+                      </div>
+                      <div className="hidden md:block text-left">
+                        <p className="text-sm font-semibold text-slate-800">{currentUser?.nama || 'User'}</p>
+                        <p className="text-xs text-slate-500 font-medium">{currentUser?.role || 'Pengguna'}</p>
+                      </div>
+                      <i className="fas fa-chevron-down text-slate-600 text-xs"></i>
                     </button>
                     
-                    {/* Notifications Dropdown */}
-                    {notificationsOpen && (
-                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-slate-200/50 z-50">
+                    {/* Profile Dropdown */}
+                    {showProfileMenu && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200/50 z-50">
                         <div className="p-4 border-b border-slate-200/50">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-slate-800">Notifikasi</h3>
-                            {unreadCount > 0 && (
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  markAllAsRead();
-                                }}
-                                className="text-sm text-blue-600 hover:text-blue-800"
-                              >
-                                Tandai semua dibaca
-                              </button>
-                            )}
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                              <i className="fas fa-user text-white text-xl"></i>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-800">{currentUser?.nama || 'User'}</p>
+                              <p className="text-sm text-slate-500">{currentUser?.role || 'Pengguna'}</p>
+                            </div>
                           </div>
                         </div>
                         
-                        <div className="max-h-96 overflow-y-auto">
-                          {notifications.length > 0 ? (
-                            notifications.map((notification) => (
-                              <div 
-                                key={notification.id}
-                                className={`p-4 border-b border-slate-200/50 hover:bg-slate-50 cursor-pointer ${
-                                  !notification.read ? 'bg-blue-50' : ''
-                                }`}
-                                onClick={() => markAsRead(notification.id)}
-                              >
-                                <div className="flex items-start space-x-3">
-                                  <div className={`w-3 h-3 rounded-full mt-2 ${
-                                    notification.type === 'success' ? 'bg-green-500' :
-                                    notification.type === 'warning' ? 'bg-yellow-500' :
-                                    'bg-blue-500'
-                                  }`}></div>
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-slate-800">{notification.title}</h4>
-                                    <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
-                                    <p className="text-xs text-slate-400 mt-2">{notification.time}</p>
-                                  </div>
-                                  {!notification.read && (
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="p-8 text-center">
-                              <div className="bg-slate-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                                <i className="fas fa-bell-slash text-slate-400 text-2xl"></i>
-                              </div>
-                              <p className="text-slate-600">Tidak ada notifikasi</p>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="p-3 text-center border-t border-slate-200/50">
-                          <button className="text-sm text-blue-600 hover:text-blue-800">
-                            Lihat semua notifikasi
+                        <div className="py-2">
+                          <button 
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              handleProfileClick();
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-100 flex items-center space-x-3"
+                          >
+                            <i className="fas fa-user-circle text-slate-600"></i>
+                            <span>Profil Saya</span>
+                          </button>
+                          
+                          <button 
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              handleLogout();
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-100 flex items-center space-x-3 text-red-600"
+                          >
+                            <i className="fas fa-sign-out-alt"></i>
+                            <span>Keluar</span>
                           </button>
                         </div>
                       </div>
                     )}
                   </div>
                 )}
-                
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm font-semibold text-slate-800">{currentUser?.nama || 'User'}</p>
-                  <p className="text-xs text-slate-500 font-medium">{currentUser?.role || 'Pengguna'}</p>
-                </div>
               </div>
             </div>
           </div>
