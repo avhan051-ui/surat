@@ -112,6 +112,17 @@ npm run db:seed
 npm run db:fix-sequence
 ```
 
+## Caching System
+
+This application implements an in-memory caching system to improve performance by reducing database queries. The caching system includes:
+
+- Enhanced in-memory cache with TTL (Time To Live)
+- Automatic cleanup of expired cache entries
+- Cache invalidation when data is modified
+- Centralized cache management utilities
+
+For detailed information about the caching implementation, see [caching-system.md](docs/caching-system.md).
+
 ## Running the Application
 
 After setting up the database, you can run the application:

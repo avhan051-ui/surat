@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUsers, getUserByNip, createUser, updateUser, deleteUser } from '@/lib/db-utils';
 import { User } from '@/app/context/AppContext';
+import cache from '@/lib/cache-utils';
+import { invalidateCacheByType } from '@/lib/cache-management-utils';
 
 export async function GET() {
   try {
+    // Check if we have a cached version
+    const cachedData = cache.get('usersData');
+    if (cachedData) {
+      return NextResponse.json(cachedData);
+    }
+    
+    // Fetch from database if not cached
     const users = await getUsers();
+    
+    // Cache the result for 5 minutes (300 seconds)
+    cache.set('usersData', users, 300);
+    
     return NextResponse.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -40,6 +53,10 @@ export async function POST(request: NextRequest) {
     }
     
     const newUser = await createUser(userData);
+    
+    // Invalidate cache after creating new user
+    invalidateCacheByType('users');
+    
     return NextResponse.json(newUser, { status: 201 });
   } catch (error: any) {
     console.error('Error creating user:', error);
@@ -82,6 +99,10 @@ export async function PUT(request: NextRequest) {
     }
     
     const updatedUser = await updateUser(id, userData);
+    
+    // Invalidate cache after updating user
+    invalidateCacheByType('users');
+    
     return NextResponse.json(updatedUser);
   } catch (error: any) {
     console.error('Error updating user:', error);
@@ -109,6 +130,10 @@ export async function DELETE(request: NextRequest) {
     }
     
     await deleteUser(parseInt(id));
+    
+    // Invalidate cache after deleting user
+    invalidateCacheByType('users');
+    
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);

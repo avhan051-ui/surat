@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSurat, createSurat, updateSuratById, deleteSuratById } from '@/lib/db-utils';
 import { Surat } from '@/app/context/AppContext';
+import cache from '@/lib/cache-utils';
+import { invalidateCacheByType } from '@/lib/cache-management-utils';
 
 export async function GET() {
   try {
+    // Check if we have a cached version
+    const cachedData = cache.get('suratData');
+    if (cachedData) {
+      return NextResponse.json(cachedData);
+    }
+    
+    // Fetch from database if not cached
     const surat = await getSurat();
+    
+    // Cache the result for 5 minutes (300 seconds)
+    cache.set('suratData', surat, 300);
+    
     return NextResponse.json(surat);
   } catch (error) {
     console.error('Error fetching surat:', error);
@@ -19,6 +32,9 @@ export async function POST(request: NextRequest) {
     
     const newSurat = await createSurat(suratData);
     console.log('Created surat:', newSurat);
+    
+    // Invalidate cache after creating new surat
+    invalidateCacheByType('surat');
     
     return NextResponse.json(newSurat, { status: 201 });
   } catch (error) {
@@ -43,6 +59,10 @@ export async function PUT(request: NextRequest) {
     }
     
     const updatedSurat = await updateSuratById(id, suratData);
+    
+    // Invalidate cache after updating surat
+    invalidateCacheByType('surat');
+    
     return NextResponse.json(updatedSurat);
   } catch (error) {
     console.error('Error updating surat:', error);
@@ -60,6 +80,10 @@ export async function DELETE(request: NextRequest) {
     }
     
     await deleteSuratById(parseInt(id));
+    
+    // Invalidate cache after deleting surat
+    invalidateCacheByType('surat');
+    
     return NextResponse.json({ message: 'Surat deleted successfully' });
   } catch (error) {
     console.error('Error deleting surat:', error);
