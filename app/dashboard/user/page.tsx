@@ -411,9 +411,13 @@ export default function UserManagementPage() {
             // Tampilkan hasil
             let resultMessage = `Import selesai: ${successCount} berhasil, ${errorCount} gagal.`;
             if (errors.length > 0) {
-              resultMessage += '\n\nError:\n' + errors.slice(0, 5).join('\n'); // Tampilkan maksimal 5 error
+              resultMessage += `
+Error:
+` + errors.slice(0, 5).join(`
+`); // Tampilkan maksimal 5 error
               if (errors.length > 5) {
-                resultMessage += `\n...dan ${errors.length - 5} error lainnya`;
+                resultMessage += `
+...dan ${errors.length - 5} error lainnya`;
               }
             }
             
@@ -436,6 +440,38 @@ export default function UserManagementPage() {
       }
     };
     input.click();
+  };
+
+  const handleDownloadTemplate = () => {
+    // Membuat data template
+    const templateData = [
+      ['nama', 'nip', 'pangkatGol', 'jabatan', 'email', 'role'],
+      ['Ahmad Wijaya', '196801011990031001', 'Pembina Tk.I / IV.b', 'Kepala Bagian IT', 'ahmad.wijaya@example.com', 'Administrator'],
+      ['Siti Nurhaliza', '197205151995032002', 'Penata / III.c', 'Staff Administrasi', 'siti.nurhaliza@example.com', 'Operator'],
+      ['Dr. Budi Santoso', '198003102005011003', 'Pembina / IV.a', 'Dokter Ahli Pertama', 'budi.santoso@example.com', 'User']
+    ];
+
+    // Membuat worksheet
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+    
+    // Membuat workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template Import User');
+    
+    // Menentukan lebar kolom
+    const colWidths = [
+      { wch: 20 }, // nama
+      { wch: 20 }, // nip
+      { wch: 25 }, // pangkatGol
+      { wch: 25 }, // jabatan
+      { wch: 25 }, // email
+      { wch: 15 }  // role
+    ];
+    
+    ws['!cols'] = colWidths;
+    
+    // Download file
+    XLSX.writeFile(wb, 'template_import_user.xlsx');
   };
 
   // Filter users berdasarkan searchTerm dan filterRole
@@ -468,12 +504,21 @@ export default function UserManagementPage() {
               >
                 <i className="fas fa-plus mr-2"></i>Tambah User
               </button>
-              <button 
-                onClick={handleImportExcel}
-                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-              >
-                <i className="fas fa-file-excel mr-2"></i>Import Excel
-              </button>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={handleImportExcel}
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+                >
+                  <i className="fas fa-file-excel mr-2"></i>Import Excel
+                </button>
+                <button 
+                  onClick={handleDownloadTemplate}
+                  className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+                  title="Download Template Excel"
+                >
+                  <i className="fas fa-download mr-2"></i>Template
+                </button>
+              </div>
             </div>
           </div>
 
