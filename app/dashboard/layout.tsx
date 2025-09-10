@@ -77,7 +77,7 @@ export default function DashboardLayout({
       icon: 'fa-tachometer-alt',
       color: 'blue',
       roles: ['Administrator', 'Operator', 'User'],
-      prefetch: ['surat', 'users', 'kategori']
+      prefetch: ['surat', 'suratMasuk', 'users', 'kategori']
     },
     {
       id: 'input',
@@ -96,6 +96,15 @@ export default function DashboardLayout({
       color: 'purple',
       roles: ['Administrator', 'Operator', 'User'],
       prefetch: ['surat', 'kategori']
+    },
+    {
+      id: 'surat-masuk',
+      href: '/dashboard/surat-masuk',
+      label: 'Data Surat Masuk',
+      icon: 'fa-envelope-open-text',
+      color: 'blue',
+      roles: ['Administrator', 'Operator', 'User'],
+      prefetch: ['suratMasuk']
     },
     {
       id: 'master-data',

@@ -1,5 +1,5 @@
 import pool from '../lib/db';
-import { User, Surat, Kategori } from '../app/context/AppContext';
+import { User, Surat, SuratMasuk, Kategori } from '../app/context/AppContext';
 
 // User operations
 export async function getUsers(): Promise<User[]> {
@@ -298,6 +298,96 @@ export async function updateKategoriData(kategoriData: {[key: string]: Kategori}
     // Rollback transaction on error
     await client.query('ROLLBACK');
     throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Surat Masuk operations
+export async function getSuratMasuk(): Promise<SuratMasuk[]> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query('SELECT * FROM surat_masuk ORDER BY id');
+    return result.rows.map(row => ({
+      id: row.id,
+      nomor: row.nomor,
+      tanggal: row.tanggal,
+      pengirim: row.pengirim,
+      perihal: row.perihal,
+      createdAt: row.created_at
+    }));
+  } finally {
+    client.release();
+  }
+}
+
+export async function createSuratMasuk(suratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>): Promise<SuratMasuk> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `INSERT INTO surat_masuk (nomor, tanggal, pengirim, perihal)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [
+        suratMasuk.nomor,
+        suratMasuk.tanggal,
+        suratMasuk.pengirim,
+        suratMasuk.perihal
+      ]
+    );
+    
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      nomor: row.nomor,
+      tanggal: row.tanggal,
+      pengirim: row.pengirim,
+      perihal: row.perihal,
+      createdAt: row.created_at
+    };
+  } catch (error) {
+    console.error('Database error creating surat masuk:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateSuratMasukById(id: number, suratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>): Promise<SuratMasuk> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `UPDATE surat_masuk 
+       SET nomor = $1, tanggal = $2, pengirim = $3, perihal = $4
+       WHERE id = $5
+       RETURNING *`,
+      [
+        suratMasuk.nomor,
+        suratMasuk.tanggal,
+        suratMasuk.pengirim,
+        suratMasuk.perihal,
+        id
+      ]
+    );
+    
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      nomor: row.nomor,
+      tanggal: row.tanggal,
+      pengirim: row.pengirim,
+      perihal: row.perihal,
+      createdAt: row.created_at
+    };
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteSuratMasukById(id: number): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('DELETE FROM surat_masuk WHERE id = $1', [id]);
   } finally {
     client.release();
   }

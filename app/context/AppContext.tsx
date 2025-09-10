@@ -29,6 +29,15 @@ interface Surat {
   fullKategori: string;
 }
 
+interface SuratMasuk {
+  id: number;
+  nomor: string;
+  tanggal: string;
+  pengirim: string;
+  perihal: string;
+  createdAt: string;
+}
+
 interface Kategori {
   name: string;
   sub: {
@@ -44,6 +53,7 @@ interface Kategori {
 interface AppContextType {
   users: User[];
   surat: Surat[];
+  suratMasuk: SuratMasuk[];
   kategoriData: { [key: string]: Kategori };
   currentUser: User | null;
   addUser: (user: User) => void;
@@ -52,6 +62,9 @@ interface AppContextType {
   addSurat: (surat: Surat) => Promise<void>;
   updateSurat: (id: number, surat: Surat) => Promise<void>;
   deleteSurat: (id: number) => Promise<void>;
+  addSuratMasuk: (suratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>) => Promise<void>;
+  updateSuratMasuk: (id: number, suratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>) => Promise<void>;
+  deleteSuratMasuk: (id: number) => Promise<void>;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
   updateKategoriData: (newKategoriData: { [key: string]: Kategori }) => void;
@@ -158,6 +171,25 @@ const initialSurat: Surat[] = [
   }
 ];
 
+const initialSuratMasuk: SuratMasuk[] = [
+  {
+    id: 1,
+    nomor: "001/SM/2025",
+    tanggal: "2025-01-10",
+    pengirim: "Dinas Pendidikan Provinsi",
+    perihal: "Undangan Rapat Koordinasi",
+    createdAt: "2025-01-10"
+  },
+  {
+    id: 2,
+    nomor: "002/SM/2025",
+    tanggal: "2025-01-12",
+    pengirim: "Balai Penyuluhan Pertanian",
+    perihal: "Permohonan Bantuan",
+    createdAt: "2025-01-12"
+  }
+];
+
   const initialKategoriData = {
     "500.6": {
       name: "Pertanian",
@@ -234,6 +266,7 @@ const kategoriData = initialKategoriData;
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [surat, setSurat] = useState<Surat[]>(initialSurat);
+  const [suratMasuk, setSuratMasuk] = useState<SuratMasuk[]>(initialSuratMasuk);
   const [kategoriData, setKategoriData] = useState<{ [key: string]: Kategori }>(initialKategoriData);
   const [currentUserState, setCurrentUserState] = useState<User | null>(null);
 
@@ -248,6 +281,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSurat(suratData);
         } else {
           console.error('Failed to fetch surat data:', suratResponse.statusText);
+        }
+        
+        // Fetch surat masuk data from the API
+        const suratMasukResponse = await fetch('/api/surat-masuk');
+        if (suratMasukResponse.ok) {
+          const suratMasukData = await suratMasukResponse.json();
+          setSuratMasuk(suratMasukData);
+        } else {
+          console.error('Failed to fetch surat masuk data:', suratMasukResponse.statusText);
         }
         
         // Fetch users data from the API
@@ -414,6 +456,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addSuratMasuk = async (newSuratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>) => {
+    try {
+      const response = await fetch('/api/surat-masuk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newSuratMasuk),
+      });
+      
+      if (response.ok) {
+        const createdSuratMasuk = await response.json();
+        setSuratMasuk(prev => [...prev, createdSuratMasuk]);
+      } else {
+        console.error('Failed to create surat masuk:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error creating surat masuk:', error);
+    }
+  };
+
+  const updateSuratMasuk = async (id: number, updatedSuratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>) => {
+    try {
+      const response = await fetch('/api/surat-masuk', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, ...updatedSuratMasuk }),
+      });
+      
+      if (response.ok) {
+        const updatedSuratMasukFromApi = await response.json();
+        setSuratMasuk(prev => prev.map(s => s.id === id ? updatedSuratMasukFromApi : s));
+      } else {
+        console.error('Failed to update surat masuk:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error updating surat masuk:', error);
+    }
+  };
+
+  const deleteSuratMasuk = async (id: number) => {
+    try {
+      const response = await fetch(`/api/surat-masuk?id=${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setSuratMasuk(prev => prev.filter(s => s.id !== id));
+      } else {
+        console.error('Failed to delete surat masuk:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error deleting surat masuk:', error);
+    }
+  };
+
   const setCurrentUser = (user: User | null) => {
     setCurrentUserState(user);
     
@@ -447,6 +547,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider value={{
       users,
       surat,
+      suratMasuk,
       kategoriData,
       currentUser: currentUserState,
       addUser,
@@ -455,6 +556,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addSurat,
       updateSurat,
       deleteSurat,
+      addSuratMasuk,
+      updateSuratMasuk,
+      deleteSuratMasuk,
       setCurrentUser,
       updateKategoriData
     }}>
