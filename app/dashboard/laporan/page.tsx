@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import { generateLaporanPDF } from '@/lib/pdf-utils';
 import { generateLaporanExcel } from '@/lib/excel-utils';
-import { createTrendChart, createKategoriChart, createHarianChart } from '@/lib/chart-utils';
 import { Chart } from 'chart.js/auto';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import TableSkeleton from '@/app/components/TableSkeleton';
@@ -20,15 +19,15 @@ export default function LaporanPage() {
   const [loading, setLoading] = useState(false);
   const [chartLoading, setChartLoading] = useState(false);
   
-  // Refs for chart containers
-  const trendChartRef = useRef<HTMLCanvasElement>(null);
-  const kategoriChartRef = useRef<HTMLCanvasElement>(null);
-  const harianChartRef = useRef<HTMLCanvasElement>(null);
-  
   // Refs for chart instances
-  const trendChartInstance = useRef<Chart | null>(null);
-  const kategoriChartInstance = useRef<Chart | null>(null);
-  const harianChartInstance = useRef<Chart | null>(null);
+  const trendChartRef = useRef<Chart | null>(null);
+  const kategoriChartRef = useRef<Chart | null>(null);
+  const harianChartRef = useRef<Chart | null>(null);
+  
+  // Refs for canvas elements
+  const trendCanvasRef = useRef<HTMLCanvasElement>(null);
+  const kategoriCanvasRef = useRef<HTMLCanvasElement>(null);
+  const harianCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     // Set default period to current month
@@ -41,14 +40,14 @@ export default function LaporanPage() {
     
     // Cleanup function to destroy charts when component unmounts
     return () => {
-      if (trendChartInstance.current) {
-        trendChartInstance.current.destroy();
+      if (trendChartRef.current) {
+        trendChartRef.current.destroy();
       }
-      if (kategoriChartInstance.current) {
-        kategoriChartInstance.current.destroy();
+      if (kategoriChartRef.current) {
+        kategoriChartRef.current.destroy();
       }
-      if (harianChartInstance.current) {
-        harianChartInstance.current.destroy();
+      if (harianChartRef.current) {
+        harianChartRef.current.destroy();
       }
     };
   }, []);
@@ -195,15 +194,26 @@ export default function LaporanPage() {
         if (isNaN(date.getTime())) {
           return;
         }
-        const month = date.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
-        monthlyData[month] = (monthlyData[month] || 0) + 1;
+        // Format bulan sebagai "MM-YY" untuk sorting yang lebih mudah
+        const monthKey = date.toLocaleDateString('id-ID', { month: '2-digit', year: '2-digit' });
+        monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
       } catch (error) {
         console.error('Error processing date:', suratItem.tanggal, error);
       }
     });
     
-    const labels = Object.keys(monthlyData).sort();
-    const values = labels.map(label => monthlyData[label]);
+    // Urutkan labels berdasarkan tanggal
+    const sortedLabels = Object.keys(monthlyData).sort((a, b) => {
+      // Konversi label bulan ke objek Date untuk sorting
+      const [monthA, yearA] = a.split('-');
+      const [monthB, yearB] = b.split('-');
+      const dateA = new Date(parseInt(`20${yearA}`), parseInt(monthA) - 1);
+      const dateB = new Date(parseInt(`20${yearB}`), parseInt(monthB) - 1);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    const labels = sortedLabels;
+    const values = sortedLabels.map(label => Number(monthlyData[label])) as number[];
     
     return { labels, values };
   };
@@ -223,7 +233,7 @@ export default function LaporanPage() {
     });
     
     const labels = Object.keys(kategoriCount);
-    const values = Object.values(kategoriCount);
+    const values = Object.values(kategoriCount).map(val => Number(val)) as number[];
     
     return { labels, values };
   };
@@ -244,8 +254,9 @@ export default function LaporanPage() {
         if (isNaN(date.getTime())) {
           return;
         }
-        const day = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-        dailyData[day] = (dailyData[day] || 0) + 1;
+        // Format hari sebagai "DD/MM" untuk label
+        const dayKey = date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' });
+        dailyData[dayKey] = (dailyData[dayKey] || 0) + 1;
       } catch (error) {
         console.error('Error processing date:', suratItem.tanggal, error);
       }
@@ -255,54 +266,255 @@ export default function LaporanPage() {
     const sortedEntries = Object.entries(dailyData).sort((a, b) => {
       const [dayA] = a;
       const [dayB] = b;
-      return dayA.localeCompare(dayB);
+      // Konversi label hari ke objek Date untuk sorting
+      const [dayNumA, monthA] = dayA.split('/');
+      const [dayNumB, monthB] = dayB.split('/');
+      const dateA = new Date(new Date().getFullYear(), parseInt(monthA) - 1, parseInt(dayNumA));
+      const dateB = new Date(new Date().getFullYear(), parseInt(monthB) - 1, parseInt(dayNumB));
+      return dateA.getTime() - dateB.getTime();
     });
     
     const labels = sortedEntries.map(([day]) => day);
-    const values = sortedEntries.map(([, count]) => count);
+    const values = sortedEntries.map(([, count]) => Number(count)) as number[];
     
     return { labels, values };
+  };
+
+  // Fungsi untuk membuat atau memperbarui chart
+  const createOrUpdateChart = (canvasRef: HTMLCanvasElement | null, chartRef: React.MutableRefObject<Chart | null>, type: string, data: any, options: any) => {
+    if (!canvasRef) return;
+    
+    const ctx = canvasRef.getContext('2d');
+    if (!ctx) return;
+    
+    // Hancurkan chart yang ada jika ada
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+    
+    // Buat chart baru
+    chartRef.current = new Chart(ctx, {
+      type,
+      data,
+      options
+    });
+  };
+
+  // Fungsi untuk membuat trend chart
+  const createTrendChart = (labels: string[], values: number[]) => {
+    createOrUpdateChart(
+      trendCanvasRef.current,
+      trendChartRef,
+      'line',
+      {
+        labels: labels,
+        datasets: [{
+          label: 'Jumlah Surat',
+          data: values,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 3,
+          pointBackgroundColor: '#3b82f6',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            },
+            padding: 12,
+            displayColors: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    );
+  };
+
+  // Fungsi untuk membuat kategori chart
+  const createKategoriChart = (labels: string[], values: number[]) => {
+    // Generate colors dynamically
+    const backgroundColors = [
+      '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', 
+      '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899'
+    ];
+    
+    // Extend colors if we have more categories than colors
+    const extendedColors = [...backgroundColors];
+    while (extendedColors.length < labels.length) {
+      extendedColors.push(...backgroundColors);
+    }
+
+    createOrUpdateChart(
+      kategoriCanvasRef.current,
+      kategoriChartRef,
+      'doughnut',
+      {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: extendedColors.slice(0, labels.length),
+          borderWidth: 0,
+          hoverOffset: 15
+        }]
+      },
+      {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 20,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context: any) {
+                const total = context.dataset.data.reduce((acc: number, val: number) => acc + val, 0);
+                const percentage = Math.round((context.raw / total) * 100);
+                return `${context.label}: ${context.raw} (${percentage}%)`;
+              }
+            },
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            },
+            padding: 12
+          }
+        },
+        cutout: '65%'
+      }
+    );
+  };
+
+  // Fungsi untuk membuat harian chart
+  const createHarianChart = (labels: string[], values: number[]) => {
+    createOrUpdateChart(
+      harianCanvasRef.current,
+      harianChartRef,
+      'bar',
+      {
+        labels: labels,
+        datasets: [{
+          label: 'Jumlah Surat',
+          data: values,
+          backgroundColor: '#10b981',
+          borderColor: '#059669',
+          borderWidth: 1,
+          borderRadius: 4,
+          barPercentage: 0.6
+        }]
+      },
+      {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            },
+            padding: 12,
+            displayColors: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    );
   };
 
   // Fungsi untuk menggambar chart
   const drawCharts = (data: any[]) => {
     try {
-      // Hapus chart yang ada sebelumnya
-      if (trendChartInstance.current) {
-        trendChartInstance.current.destroy();
-        trendChartInstance.current = null;
-      }
-      if (kategoriChartInstance.current) {
-        kategoriChartInstance.current.destroy();
-        kategoriChartInstance.current = null;
-      }
-      if (harianChartInstance.current) {
-        harianChartInstance.current.destroy();
-        harianChartInstance.current = null;
-      }
-      
       // Buat trend chart
-      if (trendChartRef.current) {
-        const { labels, values } = generateTrendData(data);
-        if (labels.length > 0 && values.length > 0) {
-          trendChartInstance.current = createTrendChart(trendChartRef.current, labels, values);
-        }
+      const { labels: trendLabels, values: trendValues } = generateTrendData(data);
+      console.log('Trend data:', { trendLabels, trendValues }); // Untuk debugging
+      if (trendLabels.length > 0 && trendValues.length > 0) {
+        // Tambahkan sedikit delay untuk memastikan canvas siap
+        setTimeout(() => {
+          createTrendChart(trendLabels, trendValues);
+        }, 100);
       }
       
       // Buat kategori chart
-      if (kategoriChartRef.current) {
-        const { labels, values } = generateKategoriData(data);
-        if (labels.length > 0 && values.length > 0) {
-          kategoriChartInstance.current = createKategoriChart(kategoriChartRef.current, labels, values);
-        }
+      const { labels: kategoriLabels, values: kategoriValues } = generateKategoriData(data);
+      console.log('Kategori data:', { kategoriLabels, kategoriValues }); // Untuk debugging
+      if (kategoriLabels.length > 0 && kategoriValues.length > 0) {
+        // Tambahkan sedikit delay untuk memastikan canvas siap
+        setTimeout(() => {
+          createKategoriChart(kategoriLabels, kategoriValues);
+        }, 100);
       }
       
       // Buat harian chart
-      if (harianChartRef.current) {
-        const { labels, values } = generateHarianData(data);
-        if (labels.length > 0 && values.length > 0) {
-          harianChartInstance.current = createHarianChart(harianChartRef.current, labels, values);
-        }
+      const { labels: harianLabels, values: harianValues } = generateHarianData(data);
+      console.log('Harian data:', { harianLabels, harianValues }); // Untuk debugging
+      if (harianLabels.length > 0 && harianValues.length > 0) {
+        // Tambahkan sedikit delay untuk memastikan canvas siap
+        setTimeout(() => {
+          createHarianChart(harianLabels, harianValues);
+        }, 100);
       }
     } catch (error) {
       console.error('Error drawing charts:', error);
@@ -565,7 +777,7 @@ export default function LaporanPage() {
       // Gambar chart dengan delay kecil untuk memastikan DOM siap
       const timer = setTimeout(() => {
         drawCharts(laporanData);
-      }, 100);
+      }, 200);
       
       return () => clearTimeout(timer);
     }
@@ -734,7 +946,7 @@ export default function LaporanPage() {
                 </div>
               </div>
               <div className="h-80">
-                <canvas ref={trendChartRef}></canvas>
+                <canvas ref={trendCanvasRef}></canvas>
               </div>
             </div>
 
@@ -747,7 +959,7 @@ export default function LaporanPage() {
                 </div>
               </div>
               <div className="h-80">
-                <canvas ref={kategoriChartRef}></canvas>
+                <canvas ref={kategoriCanvasRef}></canvas>
               </div>
             </div>
           </div>
@@ -795,7 +1007,7 @@ export default function LaporanPage() {
                 </div>
               </div>
               <div className="h-64">
-                <canvas ref={harianChartRef}></canvas>
+                <canvas ref={harianCanvasRef}></canvas>
               </div>
             </div>
           </div>
