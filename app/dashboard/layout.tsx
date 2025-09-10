@@ -239,56 +239,58 @@ export default function DashboardLayout({
           </div>
         </div>
 
-        <nav className="mt-8 px-4">
-          <div className="space-y-2">
-            {filteredMenuItems.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 border ${
-                    active
-                      ? `bg-gradient-to-r from-${item.color}-50 to-${item.color}-50 text-${item.color}-700 border-${item.color}-100`
-                      : 'text-slate-700 border-transparent hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-50'
-                  }`}
-                >
-                  <div 
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 transition-colors ${
-                      active 
-                        ? `bg-${item.color}-200 text-${item.color}-600` 
-                        : `bg-${item.color}-100 text-${item.color}-600`
+        <div className="flex flex-col h-[calc(100vh-6rem)] overflow-y-auto">
+          <nav className="mt-8 px-4 flex-grow">
+            <div className="space-y-2">
+              {filteredMenuItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 border ${
+                      active
+                        ? `bg-gradient-to-r from-${item.color}-50 to-${item.color}-50 text-${item.color}-700 border-${item.color}-100`
+                        : 'text-slate-700 border-transparent hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-50'
                     }`}
                   >
-                    <i className={`fas ${item.icon}`}></i>
-                  </div>
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="absolute bottom-0 w-full p-4">
-          <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-5 border border-slate-200/50 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-                  <i className="fas fa-user text-white text-lg"></i>
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-800">{currentUser?.nama || 'User'}</p>
-                <p className="text-xs text-slate-500 font-medium">{currentUser?.role || 'Pengguna'}</p>
-              </div>
+                    <div 
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 transition-colors ${
+                        active 
+                          ? `bg-${item.color}-200 text-${item.color}-600` 
+                          : `bg-${item.color}-100 text-${item.color}-600`
+                      }`}
+                    >
+                      <i className={`fas ${item.icon}`}></i>
+                    </div>
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
             </div>
-            <button 
-              onClick={handleLogout}
-              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm py-2.5 px-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg font-medium"
-            >
-              <i className="fas fa-sign-out-alt mr-2"></i>Keluar
-            </button>
+          </nav>
+
+          <div className="p-4 mt-auto">
+            <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-5 border border-slate-200/50 shadow-lg backdrop-blur-sm">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                    <i className="fas fa-user text-white text-lg"></i>
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{currentUser?.nama || 'User'}</p>
+                  <p className="text-xs text-slate-500 font-medium">{currentUser?.role || 'Pengguna'}</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm py-2.5 px-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+              >
+                <i className="fas fa-sign-out-alt mr-2"></i>Keluar
+              </button>
+            </div>
           </div>
         </div>
       </div>
