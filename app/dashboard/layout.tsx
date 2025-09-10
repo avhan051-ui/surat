@@ -154,6 +154,13 @@ export default function DashboardLayout({
       color: 'purple',
     },
     {
+      id: 'master-data',
+      href: '/dashboard/master-data',
+      label: 'Master Data',
+      icon: 'fa-database',
+      color: 'indigo',
+    },
+    {
       id: 'laporan',
       href: '/dashboard/laporan',
       label: 'Laporan',

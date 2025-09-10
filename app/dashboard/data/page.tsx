@@ -16,6 +16,28 @@ export default function DataSuratPage() {
   const [filterTujuan, setFilterTujuan] = useState('');
   const [editingSurat, setEditingSurat] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editSubKategori, setEditSubKategori] = useState('');
+  const [editRincian, setEditRincian] = useState('');
+
+  // Parse nomor surat to extract category information
+  const parseNomorSurat = (nomorSurat: string) => {
+    if (!nomorSurat) return { kategori: '', subKategori: '', rincian: '' };
+    
+    // Extract the category part from nomor surat (before the first slash)
+    const categoryPart = nomorSurat.split('/')[0];
+    if (!categoryPart) return { kategori: '', subKategori: '', rincian: '' };
+    
+    // Split by dots to get kategori.utama.sub.rincian
+    const parts = categoryPart.split('.');
+    if (parts.length >= 3) {
+      return {
+        kategori: parts[0] || '',
+        subKategori: parts[1] || '',
+        rincian: parts[2] || ''
+      };
+    }
+    return { kategori: '', subKategori: '', rincian: '' };
+  };
 
   useEffect(() => {
     setDataSurat(surat);
@@ -153,6 +175,14 @@ export default function DataSuratPage() {
   const handleEdit = (suratItem: any) => {
     // Initialize form with surat data
     setEditingSurat(suratItem);
+    
+    // Parse category information from nomor surat
+    const { kategori, subKategori, rincian } = parseNomorSurat(suratItem.nomor);
+    
+    // Set the sub-category and rincian states
+    setEditSubKategori(subKategori);
+    setEditRincian(rincian);
+    
     setShowEditModal(true);
   };
 
@@ -194,13 +224,19 @@ export default function DataSuratPage() {
     if (!editingSurat) return;
     
     try {
+      // Create updated surat object with fullKategori
+      const updatedSurat = {
+        ...editingSurat,
+        fullKategori: `${editingSurat.kategori}.${editSubKategori}.${editRincian}`
+      };
+
       // Update surat via API
       const response = await fetch('/api/surat', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editingSurat),
+        body: JSON.stringify(updatedSurat),
       });
 
       if (!response.ok) {
@@ -209,19 +245,18 @@ export default function DataSuratPage() {
         throw new Error(`Failed to update surat: ${response.status} ${response.statusText}`);
       }
 
-      const updatedSurat = await response.json();
-
       // Update surat in context
       await updateSurat(editingSurat.id, updatedSurat);
       
       showSuccessToast('Data surat berhasil diperbarui.');
+      setShowEditModal(false);
+      setEditingSurat(null);
+      setEditSubKategori('');
+      setEditRincian('');
     } catch (error) {
       console.error('Error updating surat:', error);
       showErrorToast(`Gagal memperbarui surat: ${error.message}`);
     }
-    
-    setShowEditModal(false);
-    setEditingSurat(null);
   };
 
   return (
@@ -424,12 +459,16 @@ export default function DataSuratPage() {
                   ></textarea>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Kategori Utama</label>
                     <select 
                       value={editingSurat.kategori}
-                      onChange={(e) => setEditingSurat({...editingSurat, kategori: e.target.value})}
+                      onChange={(e) => {
+                        setEditingSurat({...editingSurat, kategori: e.target.value});
+                        setEditSubKategori(''); // Reset sub-kategori when main category changes
+                        setEditRincian(''); // Reset rincian when main category changes
+                      }}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       required
                     >
@@ -441,6 +480,51 @@ export default function DataSuratPage() {
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sub Kategori</label>
+                    <select 
+                      value={editSubKategori}
+                      onChange={(e) => {
+                        setEditSubKategori(e.target.value);
+                        setEditRincian(''); // Reset rincian when sub-category changes
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      required
+                      disabled={!editingSurat?.kategori}
+                    >
+                      <option value="">Pilih Sub Kategori</option>
+                      {editingSurat?.kategori && kategoriData[editingSurat.kategori]?.sub && 
+                        Object.entries(kategoriData[editingSurat.kategori].sub).map(([key, value]) => (
+                          <option key={key} value={key}>
+                            {key} - {value.name}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Rincian</label>
+                    <select 
+                      value={editRincian}
+                      onChange={(e) => setEditRincian(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      required
+                      disabled={!editSubKategori}
+                    >
+                      <option value="">Pilih Rincian</option>
+                      {editingSurat?.kategori && editSubKategori && 
+                       kategoriData[editingSurat.kategori]?.sub?.[editSubKategori]?.rincian &&
+                        Object.entries(kategoriData[editingSurat.kategori].sub[editSubKategori].rincian).map(([key, value]) => (
+                          <option key={key} value={key}>
+                            {key} - {value}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Pembuat Surat</label>
                     <select 

@@ -54,7 +54,11 @@ interface AppContextType {
   deleteSurat: (id: number) => Promise<void>;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
+  updateKategoriData: (newKategoriData: { [key: string]: Kategori }) => void;
 }
+
+// Create the AppContext
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Initial data
 const initialUsers: User[] = [
@@ -154,85 +158,84 @@ const initialSurat: Surat[] = [
   }
 ];
 
-const kategoriData = {
-  "500.6": {
-    name: "Pertanian",
-    sub: {
-      "1": {
-        name: "Kebijakan di Bidang Pertanian",
-        rincian: {
-          "1": "Kebijakan Umum Pertanian",
-          "2": "Regulasi Pertanian",
-          "3": "Program Pertanian"
+  const initialKategoriData = {
+    "500.6": {
+      name: "Pertanian",
+      sub: {
+        "1": {
+          name: "Kebijakan di Bidang Pertanian",
+          rincian: {
+            "1": "Kebijakan Umum Pertanian",
+            "2": "Regulasi Pertanian",
+            "3": "Program Pertanian"
+          }
+        },
+        "2": {
+          name: "Pengembangan Pertanian",
+          rincian: {
+            "1": "Inovasi Teknologi",
+            "2": "Pelatihan Petani",
+            "3": "Bantuan Alat"
+          }
         }
-      },
-      "2": {
-        name: "Pengembangan Pertanian",
-        rincian: {
-          "1": "Inovasi Teknologi",
-          "2": "Pelatihan Petani",
-          "3": "Bantuan Alat"
+      }
+    },
+    "400.5": {
+      name: "Pendidikan",
+      sub: {
+        "1": {
+          name: "Kebijakan Pendidikan",
+          rincian: {
+            "1": "Kurikulum",
+            "2": "Standar Pendidikan",
+            "3": "Evaluasi"
+          }
+        },
+        "2": {
+          name: "Sarana Prasarana",
+          rincian: {
+            "1": "Pembangunan Sekolah",
+            "2": "Peralatan",
+            "3": "Maintenance"
+          }
+        }
+      }
+    },
+    "300.4": {
+      name: "Kesehatan",
+      sub: {
+        "1": {
+          name: "Pelayanan Kesehatan",
+          rincian: {
+            "1": "Puskesmas",
+            "2": "Rumah Sakit",
+            "3": "Posyandu"
+          }
+        }
+      }
+    },
+    "200.3": {
+      name: "Infrastruktur",
+      sub: {
+        "1": {
+          name: "Jalan dan Jembatan",
+          rincian: {
+            "1": "Pembangunan Jalan",
+            "2": "Perbaikan Jalan",
+            "3": "Jembatan"
+          }
         }
       }
     }
-  },
-  "400.5": {
-    name: "Pendidikan",
-    sub: {
-      "1": {
-        name: "Kebijakan Pendidikan",
-        rincian: {
-          "1": "Kurikulum",
-          "2": "Standar Pendidikan",
-          "3": "Evaluasi"
-        }
-      },
-      "2": {
-        name: "Sarana Prasarana",
-        rincian: {
-          "1": "Pembangunan Sekolah",
-          "2": "Peralatan",
-          "3": "Maintenance"
-        }
-      }
-    }
-  },
-  "300.4": {
-    name: "Kesehatan",
-    sub: {
-      "1": {
-        name: "Pelayanan Kesehatan",
-        rincian: {
-          "1": "Puskesmas",
-          "2": "Rumah Sakit",
-          "3": "Posyandu"
-        }
-      }
-    }
-  },
-  "200.3": {
-    name: "Infrastruktur",
-    sub: {
-      "1": {
-        name: "Jalan dan Jembatan",
-        rincian: {
-          "1": "Pembangunan Jalan",
-          "2": "Perbaikan Jalan",
-          "3": "Jembatan"
-        }
-      }
-    }
-  }
-};
+  };
 
-// Create context
-const AppContext = createContext<AppContextType | undefined>(undefined);
+const kategoriData = initialKategoriData;
 
-// Provider component
-export function AppProvider({ children }: { children: ReactNode }) {
+export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [surat, setSurat] = useState<Surat[]>(initialSurat);
-  const [currentUser, setCurrentUserState] = useState<User | null>(null);
+  const [kategoriData, setKategoriData] = useState<{ [key: string]: Kategori }>(initialKategoriData);
+  const [currentUserState, setCurrentUserState] = useState<User | null>(null);
 
   // Load data from PostgreSQL on initial render
   useEffect(() => {
@@ -396,21 +399,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setCurrentUser = (user: User | null) => {
     setCurrentUserState(user);
-    if (user) {
-      // Set cookie for authentication
-      document.cookie = `currentUser=${JSON.stringify(user)}; path=/; max-age=24*60*60`;
-    } else {
-      // Remove cookie
-      document.cookie = 'currentUser=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    
+    if (typeof window !== 'undefined') {
+      if (user) {
+        // Set cookie for authentication
+        document.cookie = `currentUser=${JSON.stringify(user)}; path=/; max-age=24*60*60`;
+      } else {
+        // Remove cookie
+        document.cookie = 'currentUser=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
     }
   };
 
   const logout = () => {
-    setCurrentUser(null);
+    setCurrentUserState(null);
     // Redirect to login page
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
     }
+  };
+
+  const updateKategoriData = (newKategoriData: { [key: string]: Kategori }) => {
+    setKategoriData(newKategoriData);
   };
 
   return (
@@ -418,7 +428,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users,
       surat,
       kategoriData,
-      currentUser,
+      currentUser: currentUserState,
       addUser,
       updateUser,
       deleteUser,
@@ -426,7 +436,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateSurat,
       deleteSurat,
       setCurrentUser,
-      logout
+      updateKategoriData
     }}>
       {children}
     </AppContext.Provider>
