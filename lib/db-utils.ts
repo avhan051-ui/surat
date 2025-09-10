@@ -314,7 +314,11 @@ export async function getSuratMasuk(): Promise<SuratMasuk[]> {
       tanggal: row.tanggal,
       pengirim: row.pengirim,
       perihal: row.perihal,
-      createdAt: row.created_at
+      createdAt: row.created_at,
+      filePath: row.file_path,
+      fileName: row.file_name,
+      fileType: row.file_type,
+      fileSize: row.file_size
     }));
   } finally {
     client.release();
@@ -325,14 +329,18 @@ export async function createSuratMasuk(suratMasuk: Omit<SuratMasuk, 'id' | 'crea
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `INSERT INTO surat_masuk (nomor, tanggal, pengirim, perihal)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO surat_masuk (nomor, tanggal, pengirim, perihal, file_path, file_name, file_type, file_size)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         suratMasuk.nomor,
         suratMasuk.tanggal,
         suratMasuk.pengirim,
-        suratMasuk.perihal
+        suratMasuk.perihal,
+        suratMasuk.filePath || null,
+        suratMasuk.fileName || null,
+        suratMasuk.fileType || null,
+        suratMasuk.fileSize || null
       ]
     );
     
@@ -343,7 +351,11 @@ export async function createSuratMasuk(suratMasuk: Omit<SuratMasuk, 'id' | 'crea
       tanggal: row.tanggal,
       pengirim: row.pengirim,
       perihal: row.perihal,
-      createdAt: row.created_at
+      createdAt: row.created_at,
+      filePath: row.file_path,
+      fileName: row.file_name,
+      fileType: row.file_type,
+      fileSize: row.file_size
     };
   } catch (error) {
     console.error('Database error creating surat masuk:', error);
@@ -358,14 +370,18 @@ export async function updateSuratMasukById(id: number, suratMasuk: Omit<SuratMas
   try {
     const result = await client.query(
       `UPDATE surat_masuk 
-       SET nomor = $1, tanggal = $2, pengirim = $3, perihal = $4
-       WHERE id = $5
+       SET nomor = $1, tanggal = $2, pengirim = $3, perihal = $4, file_path = $5, file_name = $6, file_type = $7, file_size = $8
+       WHERE id = $9
        RETURNING *`,
       [
         suratMasuk.nomor,
         suratMasuk.tanggal,
         suratMasuk.pengirim,
         suratMasuk.perihal,
+        suratMasuk.filePath || null,
+        suratMasuk.fileName || null,
+        suratMasuk.fileType || null,
+        suratMasuk.fileSize || null,
         id
       ]
     );
@@ -377,7 +393,11 @@ export async function updateSuratMasukById(id: number, suratMasuk: Omit<SuratMas
       tanggal: row.tanggal,
       pengirim: row.pengirim,
       perihal: row.perihal,
-      createdAt: row.created_at
+      createdAt: row.created_at,
+      filePath: row.file_path,
+      fileName: row.file_name,
+      fileType: row.file_type,
+      fileSize: row.file_size
     };
   } finally {
     client.release();

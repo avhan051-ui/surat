@@ -19,8 +19,16 @@ export default function SuratMasukPage() {
     nomor: '',
     tanggal: '',
     pengirim: '',
-    perihal: ''
+    perihal: '',
+    file: null as File | null,
+    fileName: ''
   });
+  const [uploadedFile, setUploadedFile] = useState<{ 
+    filePath: string; 
+    fileName: string; 
+    fileType: string; 
+    fileSize: number 
+  } | null>(null);
 
   useEffect(() => {
     if (initialLoad) {
@@ -43,8 +51,11 @@ export default function SuratMasukPage() {
       nomor: '',
       tanggal: '',
       pengirim: '',
-      perihal: ''
+      perihal: '',
+      file: null,
+      fileName: ''
     });
+    setUploadedFile(null);
     setShowModal(true);
   };
 
@@ -54,8 +65,23 @@ export default function SuratMasukPage() {
       nomor: suratMasukItem.nomor,
       tanggal: suratMasukItem.tanggal,
       pengirim: suratMasukItem.pengirim,
-      perihal: suratMasukItem.perihal
+      perihal: suratMasukItem.perihal,
+      file: null,
+      fileName: suratMasukItem.fileName || ''
     });
+    
+    // Set uploaded file info if it exists
+    if (suratMasukItem.filePath) {
+      setUploadedFile({
+        filePath: suratMasukItem.filePath,
+        fileName: suratMasukItem.fileName,
+        fileType: suratMasukItem.fileType,
+        fileSize: suratMasukItem.fileSize
+      });
+    } else {
+      setUploadedFile(null);
+    }
+    
     setShowModal(true);
   };
 
@@ -78,6 +104,29 @@ export default function SuratMasukPage() {
     });
   };
 
+  const handleFileUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/upload-surat-masuk', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result;
+      } else {
+        throw new Error('Failed to upload file');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      showErrorToast('Gagal mengunggah file.');
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -87,13 +136,52 @@ export default function SuratMasukPage() {
     }
     
     try {
+      // Handle file upload if a file is selected
+      let fileData = {
+        filePath: null,
+        fileName: null,
+        fileType: null,
+        fileSize: null
+      };
+      
+      if (formData.file) {
+        const uploadResult = await handleFileUpload(formData.file);
+        if (uploadResult && uploadResult.success) {
+          fileData = {
+            filePath: uploadResult.filePath,
+            fileName: uploadResult.fileName,
+            fileType: uploadResult.fileType,
+            fileSize: uploadResult.fileSize
+          };
+        } else {
+          // If file upload fails, we might want to stop the submission
+          return;
+        }
+      } else if (uploadedFile) {
+        // If editing and no new file is selected, keep the existing file data
+        fileData = {
+          filePath: uploadedFile.filePath,
+          fileName: uploadedFile.fileName,
+          fileType: uploadedFile.fileType,
+          fileSize: uploadedFile.fileSize
+        };
+      }
+      
+      const suratData = {
+        nomor: formData.nomor,
+        tanggal: formData.tanggal,
+        pengirim: formData.pengirim,
+        perihal: formData.perihal,
+        ...fileData
+      };
+      
       if (editingSuratMasuk) {
         // Update existing surat masuk
-        await updateSuratMasuk(editingSuratMasuk.id, formData);
+        await updateSuratMasuk(editingSuratMasuk.id, suratData);
         showSuccessToast('Data surat masuk berhasil diperbarui.');
       } else {
         // Add new surat masuk
-        await addSuratMasuk(formData);
+        await addSuratMasuk(suratData);
         showSuccessToast('Surat masuk berhasil ditambahkan.');
       }
       
@@ -103,8 +191,11 @@ export default function SuratMasukPage() {
         nomor: '',
         tanggal: '',
         pengirim: '',
-        perihal: ''
+        perihal: '',
+        file: null,
+        fileName: ''
       });
+      setUploadedFile(null);
     } catch (error) {
       console.error('Error saving surat masuk:', error);
       showErrorToast('Gagal menyimpan surat masuk.');
@@ -166,6 +257,7 @@ export default function SuratMasukPage() {
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pengirim</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
+                    <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lampiran</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
@@ -177,6 +269,19 @@ export default function SuratMasukPage() {
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(suratMasukItem.tanggal)}</td>
                       <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-sm truncate">{suratMasukItem.pengirim}</td>
                       <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-md truncate">{suratMasukItem.perihal}</td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm">
+                        {suratMasukItem.filePath ? (
+                          <button 
+                            onClick={() => window.open(suratMasukItem.filePath, '_blank')}
+                            className="text-blue-600 hover:text-blue-800 mr-3 transition-colors"
+                            title="Lihat/Lampiran"
+                          >
+                            <i className="fas fa-file-download"></i>
+                          </button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button 
                           onClick={() => handleEditSuratMasuk(suratMasukItem)}
@@ -271,6 +376,65 @@ export default function SuratMasukPage() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
                       required
                     ></textarea>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Lampiran Surat</label>
+                    <div className="flex items-center space-x-4">
+                      <input 
+                        type="file" 
+                        id="file-upload"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setFormData({
+                            ...formData,
+                            file: file,
+                            fileName: file ? file.name : ''
+                          });
+                        }}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                      />
+                      <label 
+                        htmlFor="file-upload"
+                        className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <i className="fas fa-upload mr-2"></i>Pilih File
+                      </label>
+                      <span className="text-sm text-gray-600 truncate">
+                        {formData.fileName || 'Tidak ada file dipilih'}
+                      </span>
+                    </div>
+                    {uploadedFile && !formData.file && (
+                      <div className="mt-2 flex items-center justify-between bg-blue-50 p-2 rounded">
+                        <div className="flex items-center">
+                          <i className="fas fa-file mr-2 text-blue-500"></i>
+                          <span className="text-sm text-gray-700">{uploadedFile.fileName}</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => setUploadedFile(null)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                    )}
+                    {formData.file && (
+                      <div className="mt-2 flex items-center justify-between bg-green-50 p-2 rounded">
+                        <div className="flex items-center">
+                          <i className="fas fa-file mr-2 text-green-500"></i>
+                          <span className="text-sm text-gray-700">{formData.file.name}</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => setFormData({...formData, file: null, fileName: ''})}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">

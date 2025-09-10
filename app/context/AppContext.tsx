@@ -36,6 +36,10 @@ interface SuratMasuk {
   pengirim: string;
   perihal: string;
   createdAt: string;
+  filePath?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
 }
 
 interface Kategori {
