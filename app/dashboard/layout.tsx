@@ -80,15 +80,6 @@ export default function DashboardLayout({
       prefetch: ['surat', 'suratMasuk', 'users', 'kategori']
     },
     {
-      id: 'input',
-      href: '/dashboard/input',
-      label: 'Input Surat Baru',
-      icon: 'fa-plus-circle',
-      color: 'green',
-      roles: ['Administrator', 'Operator'],
-      prefetch: ['kategori', 'users']
-    },
-    {
       id: 'data',
       href: '/dashboard/data',
       label: 'Data Surat Keluar',
