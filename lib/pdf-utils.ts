@@ -24,25 +24,26 @@ export const generateLaporanPDF = (
   const pageHeight = doc.internal.pageSize.getHeight();
   
   // Header
-  // Logo placeholder (in a real app, you might add an actual logo)
-  doc.setFillColor(59, 130, 246); // blue-500
-  doc.rect(0, 0, pageWidth, 25, 'F');
+  doc.setDrawColor(59, 130, 246); // blue-500
+  doc.setLineWidth(0.1);
+  doc.line(14, 25, pageWidth - 14, 25);
   
   // Title
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
+  doc.setTextColor(30, 64, 175); // blue-800
+  doc.setFontSize(28);
   doc.setFont(undefined, 'bold');
-  doc.text('LAPORAN SURAT KELUAR', pageWidth / 2, 15, { align: 'center' });
+  doc.text('LAPORAN SURAT KELUAR', pageWidth / 2, 18, { align: 'center' });
   
   // Subtitle
-  doc.setFontSize(12);
+  doc.setFontSize(16);
   doc.setFont(undefined, 'normal');
-  doc.text('Sistem Pengelolaan Surat Keluar', pageWidth / 2, 22, { align: 'center' });
+  doc.setTextColor(100, 116, 139); // slate-500
+  doc.text('Sistem Pengelolaan Surat Keluar', pageWidth / 2, 24, { align: 'center' });
   
   // Reset text color
   doc.setTextColor(0, 0, 0);
   
-  // Report info section
+  // Report info section with improved styling
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', {
@@ -52,27 +53,38 @@ export const generateLaporanPDF = (
     });
   };
   
-  // Period info
+  // Period info with better styling
+  doc.setFillColor(239, 246, 255); // blue-50
+  doc.roundedRect(14, 32, pageWidth - 28, 18, 2, 2, 'F');
+  
+  doc.setDrawColor(59, 130, 246); // blue-500
+  doc.setLineWidth(0.2);
+  doc.line(14, 32, 14, 50); // Left border line
+  
   doc.setFontSize(12);
   doc.setFont(undefined, 'bold');
-  doc.text('Periode Laporan:', 14, 35);
+  doc.setTextColor(30, 64, 175); // blue-800
+  doc.text('Periode Laporan:  ', 18, 42);
   
   doc.setFont(undefined, 'normal');
-  doc.text(`${formatDate(tanggalDari)} - ${formatDate(tanggalSampai)}`, 45, 35);
+  doc.setTextColor(51, 65, 85); // slate-700
+  doc.text(`${formatDate(tanggalDari)} - ${formatDate(tanggalSampai)}`, 55, 42);
   
   // Category info
   if (selectedKategori) {
     const kategoriName = kategoriData[selectedKategori]?.name || selectedKategori;
     doc.setFont(undefined, 'bold');
-    doc.text('Kategori:', 14, 42);
+    doc.setTextColor(30, 64, 175); // blue-800
+    doc.text('Kategori:', 18, 48);
     
     doc.setFont(undefined, 'normal');
-    doc.text(`${selectedKategori} - ${kategoriName}`, 35, 42);
+    doc.setTextColor(51, 65, 85); // slate-700
+    doc.text(`${selectedKategori} - ${kategoriName}`, 38, 48);
   }
   
   // Table
   autoTable(doc, {
-    startY: 50,
+    startY: 55,
     head: [['No', 'Nomor Surat', 'Tanggal', 'Tujuan', 'Perihal', 'Pembuat']],
     body: data.map((item, index) => [
       index + 1,
@@ -93,7 +105,7 @@ export const generateLaporanPDF = (
       fontStyle: 'bold'
     },
     alternateRowStyles: {
-      fillColor: [249, 250, 251] // gray-50
+      fillColor: [248, 250, 252] // slate-50
     },
     columnStyles: {
       0: { cellWidth: 15 }, // No
@@ -111,12 +123,13 @@ export const generateLaporanPDF = (
     doc.setPage(i);
     
     // Footer line
-    doc.setDrawColor(200, 200, 200);
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.setLineWidth(0.1);
     doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
     
     // Page number
     doc.setFontSize(10);
-    doc.setTextColor(150, 150, 150);
+    doc.setTextColor(148, 163, 184); // slate-400
     doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - 30, pageHeight - 15);
     
     // Generated date
