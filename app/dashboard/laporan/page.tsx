@@ -397,7 +397,171 @@ export default function LaporanPage() {
       alert('Tidak ada data untuk di-print. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
       return;
     }
-    alert('Print functionality would be implemented here');
+    
+    // Create a print window with formatted content
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Laporan Surat Keluar</title>
+          <style>
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              color: #333;
+              background-color: #fff;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #3b82f6;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+            }
+            .title {
+              font-size: 28px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0;
+            }
+            .subtitle {
+              font-size: 16px;
+              color: #64748b;
+              margin-top: 5px;
+            }
+            .report-info {
+              background-color: #eff6ff;
+              border-left: 4px solid #3b82f6;
+              padding: 15px;
+              margin-bottom: 25px;
+              border-radius: 0 8px 8px 0;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+            .info-label {
+              font-weight: 600;
+              color: #1e40af;
+              margin-right: 10px;
+              display: inline-block;
+              min-width: 140px;
+            }
+            .info-value {
+              font-weight: 500;
+              color: #334155;
+            }
+            .info-row {
+              margin-bottom: 8px;
+            }
+            .info-row:last-child {
+              margin-bottom: 0;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              border-radius: 8px;
+              overflow: hidden;
+            }
+            th {
+              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+              color: white;
+              font-weight: 600;
+              text-align: left;
+              padding: 12px 15px;
+            }
+            td {
+              border: 1px solid #e2e8f0;
+              padding: 10px 15px;
+            }
+            tr:nth-child(even) {
+              background-color: #f8fafc;
+            }
+            tr:hover {
+              background-color: #f1f5f9;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 12px;
+              color: #94a3b8;
+              padding-top: 15px;
+              border-top: 1px solid #e2e8f0;
+            }
+            @media print {
+              body {
+                margin: 0;
+                padding: 20px;
+              }
+              .header {
+                border-bottom: 2px solid #3b82f6;
+                padding-bottom: 10px;
+              }
+              .title {
+                font-size: 24px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">LAPORAN SURAT KELUAR</div>
+            <div class="subtitle">Sistem Pengelolaan Surat Keluar</div>
+          </div>
+          
+          <div class="report-info">
+            <div class="info-row">
+              <span class="info-label">Periode Laporan:</span>
+              <span class="info-value">${formatDate(tanggalDari)} - ${formatDate(tanggalSampai)}</span>
+            </div>
+            ${kategori ? `
+            <div class="info-row">
+              <span class="info-label">Kategori:</span>
+              <span class="info-value">${kategori} - ${kategoriData[kategori]?.name || ''}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nomor Surat</th>
+                <th>Tanggal</th>
+                <th>Tujuan</th>
+                <th>Perihal</th>
+                <th>Pembuat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${laporanData.map((item, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.nomor}</td>
+                  <td>${formatDate(item.tanggal)}</td>
+                  <td>${item.tujuan}</td>
+                  <td>${item.perihal}</td>
+                  <td>${item.pembuat}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="footer">
+            Dicetak pada: ${new Date().toLocaleDateString('id-ID', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   // Get top creators for display
@@ -476,57 +640,6 @@ export default function LaporanPage() {
             >
               <i className="fas fa-chart-bar mr-1"></i>Generate
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Statistik Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium mb-2">Total Surat</p>
-              <p className="text-3xl font-bold">{stats.totalSurat}</p>
-            </div>
-            <div className="bg-white/20 rounded-xl p-3">
-              <i className="fas fa-envelope text-2xl"></i>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm font-medium mb-2">Rata-rata/Bulan</p>
-              <p className="text-3xl font-bold">{stats.rataRata}</p>
-            </div>
-            <div className="bg-white/20 rounded-xl p-3">
-              <i className="fas fa-chart-line text-2xl"></i>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm font-medium mb-2">Kategori Terbanyak</p>
-              <p className="text-lg font-bold">{stats.kategoriTop}</p>
-            </div>
-            <div className="bg-white/20 rounded-xl p-3">
-              <i className="fas fa-trophy text-2xl"></i>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm font-medium mb-2">Bulan Tertinggi</p>
-              <p className="text-lg font-bold">{stats.bulanTop}</p>
-            </div>
-            <div className="bg-white/20 rounded-xl p-3">
-              <i className="fas fa-calendar-check text-2xl"></i>
-            </div>
           </div>
         </div>
       </div>
