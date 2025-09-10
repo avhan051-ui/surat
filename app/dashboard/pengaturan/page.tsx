@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import RouteGuard from '@/app/components/RouteGuard';
 
 export default function PengaturanPage() {
   const { currentUser, setCurrentUser } = useAppContext();
@@ -48,17 +49,18 @@ export default function PengaturanPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Pengaturan Sistem</h2>
-            <p className="text-gray-600 mt-1">Konfigurasi sistem dan pengaturan aplikasi</p>
+    <RouteGuard requiredRole="Administrator">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Pengaturan Sistem</h2>
+              <p className="text-gray-600 mt-1">Konfigurasi sistem dan pengaturan aplikasi</p>
+            </div>
+            <div className="bg-gray-100 p-3 rounded-full">
+              <i className="fas fa-cog text-gray-600 text-2xl"></i>
+            </div>
           </div>
-          <div className="bg-gray-100 p-3 rounded-full">
-            <i className="fas fa-cog text-gray-600 text-2xl"></i>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* System Configuration */}
@@ -208,6 +210,7 @@ export default function PengaturanPage() {
           </button>
         </div>
       </div>
-    </div>
-  );
+          </div>
+      </RouteGuard>     
+);
 }

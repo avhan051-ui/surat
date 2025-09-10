@@ -451,3 +451,6 @@ export function useAppContext() {
   }
   return context;
 }
+
+// Export the provider and custom hook
+export { AppProvider, useAppContext };

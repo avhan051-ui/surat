@@ -131,6 +131,7 @@ export default function DashboardLayout({
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Define menu items with role permissions (this would ideally come from context or API)
   const menuItems = [
     {
       id: 'dashboard',
@@ -138,6 +139,7 @@ export default function DashboardLayout({
       label: 'Dashboard',
       icon: 'fa-tachometer-alt',
       color: 'blue',
+      roles: ['Administrator', 'Operator', 'User']
     },
     {
       id: 'input',
@@ -145,6 +147,7 @@ export default function DashboardLayout({
       label: 'Input Surat Baru',
       icon: 'fa-plus-circle',
       color: 'green',
+      roles: ['Administrator', 'Operator']
     },
     {
       id: 'data',
@@ -152,6 +155,7 @@ export default function DashboardLayout({
       label: 'Data Surat Keluar',
       icon: 'fa-table',
       color: 'purple',
+      roles: ['Administrator', 'Operator', 'User']
     },
     {
       id: 'master-data',
@@ -159,6 +163,7 @@ export default function DashboardLayout({
       label: 'Master Data',
       icon: 'fa-database',
       color: 'indigo',
+      roles: ['Administrator']
     },
     {
       id: 'laporan',
@@ -166,6 +171,7 @@ export default function DashboardLayout({
       label: 'Laporan',
       icon: 'fa-chart-bar',
       color: 'orange',
+      roles: ['Administrator', 'Operator', 'User']
     },
     {
       id: 'user',
@@ -173,6 +179,7 @@ export default function DashboardLayout({
       label: 'Kelola User',
       icon: 'fa-users',
       color: 'teal',
+      roles: ['Administrator']
     },
     {
       id: 'pengaturan',
@@ -180,8 +187,22 @@ export default function DashboardLayout({
       label: 'Pengaturan',
       icon: 'fa-cog',
       color: 'gray',
+      roles: ['Administrator']
+    },
+    {
+      id: 'role',
+      href: '/role',
+      label: 'Role',
+      icon: 'fa-user-shield',
+      color: 'blue',
+      roles: ['Administrator']
     },
   ];
+
+  // Filter menu items based on user role
+  const filteredMenuItems = menuItems.filter(item => 
+    item.roles.includes(currentUser?.role || '')
+  );
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -211,7 +232,7 @@ export default function DashboardLayout({
 
         <nav className="mt-8 px-4">
           <div className="space-y-2">
-            {menuItems.map((item) => {
+            {filteredMenuItems.map((item) => {
               const active = isActive(item.href);
               return (
                 <Link
@@ -281,7 +302,7 @@ export default function DashboardLayout({
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">
-                  {menuItems.find(item => isActive(item.href))?.label || 'Dashboard'}
+                  {filteredMenuItems.find(item => isActive(item.href))?.label || 'Dashboard'}
                 </h1>
                 <p className="text-sm lg:text-base text-slate-600 mt-2 font-medium">
                   {pathname === '/dashboard' 

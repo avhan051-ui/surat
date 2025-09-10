@@ -1,33 +1,58 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Define protected routes
-const protectedRoutes = ['/dashboard', '/dashboard/input', '/dashboard/data', '/dashboard/user', '/dashboard/laporan', '/dashboard/pengaturan'];
+// Define route access permissions
+const routePermissions = {
+  '/dashboard/user': ['Administrator'],
+  '/dashboard/master-data': ['Administrator'],
+  '/dashboard/pengaturan': ['Administrator'],
+  // Add more routes and their allowed roles here
+};
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const currentUser = getCurrentUser(request);
   
-  // Check if the route is protected
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  // Allow access to login page for everyone
+  if (request.nextUrl.pathname === '/login') {
+    return NextResponse.next();
+  }
   
-  // Check if user is logged in by looking for user data in cookies
-  const currentUser = request.cookies.get('currentUser')?.value;
-  const isLoggedIn = !!currentUser;
-  
-  // If trying to access protected route without being logged in, redirect to login
-  if (isProtectedRoute && !isLoggedIn) {
+  // Redirect unauthenticated users to login
+  if (!currentUser) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
   
-  // If logged in user tries to access login page, redirect to dashboard
-  if (pathname === '/login' && isLoggedIn) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // Admin can access everything
+  if (currentUser.role === 'Administrator') {
+    return NextResponse.next();
+  }
+  
+  // Check if user has permission for the requested route
+  const requiredRoles = routePermissions[request.nextUrl.pathname as keyof typeof routePermissions];
+  if (requiredRoles && !requiredRoles.includes(currentUser.role)) {
+    // Redirect to unauthorized page if user doesn't have permission
+    return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
   
   return NextResponse.next();
 }
 
-// Configure which paths the middleware should run on
+// Helper function to get current user from cookies
+function getCurrentUser(request: NextRequest) {
+  const cookieValue = request.cookies.get('currentUser')?.value;
+  if (cookieValue) {
+    try {
+      return JSON.parse(decodeURIComponent(cookieValue));
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-};
+  matcher: [
+    '/dashboard/:path*',
+    '/login',
+  ],
+};;
