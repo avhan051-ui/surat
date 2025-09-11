@@ -31,7 +31,8 @@ export default function UserManagementPage() {
     pangkatGol: '',
     jabatan: '',
     email: '',
-    role: ''
+    role: '',
+    password: ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,7 +100,8 @@ export default function UserManagementPage() {
       pangkatGol: '',
       jabatan: '',
       email: '',
-      role: ''
+      role: '',
+      password: ''
     });
     setShowModal(true);
   };
@@ -112,7 +114,8 @@ export default function UserManagementPage() {
       pangkatGol: user.pangkatGol,
       jabatan: user.jabatan,
       email: user.email || '',
-      role: user.role
+      role: user.role,
+      password: ''
     });
     setShowModal(true);
   };
@@ -178,18 +181,24 @@ export default function UserManagementPage() {
     try {
       if (editingUser) {
         // Update existing user
+        const userData = {
+          id: editingUser.id,
+          ...formData,
+          lastLogin: editingUser.lastLogin, // Keep existing lastLogin
+          createdAt: editingUser.createdAt // Keep existing createdAt
+        };
+        
+        // If password is empty, don't update it
+        if (!formData.password) {
+          delete userData.password;
+        }
+        
         const response = await fetch('/api/users', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            id: editingUser.id,
-            ...formData,
-            password: editingUser.password, // Keep existing password
-            lastLogin: editingUser.lastLogin, // Keep existing lastLogin
-            createdAt: editingUser.createdAt // Keep existing createdAt
-          })
+          body: JSON.stringify(userData)
         });
 
         if (response.ok) {
@@ -714,6 +723,20 @@ Error:
                     </select>
                   </div>
                 </div>
+
+                {editingUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Password Baru</label>
+                    <input 
+                      type="password" 
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder="Kosongkan jika tidak ingin mengganti password"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Kosongkan jika tidak ingin mengganti password</p>
+                  </div>
+                )}
 
                 {!editingUser && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

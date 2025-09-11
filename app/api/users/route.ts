@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUsers, getUserByNip, createUser, updateUser, deleteUser } from '@/lib/db-utils';
+import { getUsers, createUser, updateUser, deleteUser } from '@/lib/db-utils';
 import { User } from '@/app/context/AppContext';
 import cache from '@/lib/cache-utils';
 import { invalidateCacheByType } from '@/lib/cache-management-utils';
+import bcrypt from 'bcrypt';
 
 export async function GET() {
   try {
@@ -52,21 +53,32 @@ export async function POST(request: NextRequest) {
       userData.lastLogin = null;
     }
     
+    // Encrypt password if it's not already encrypted
+    if (userData.password && !userData.password.startsWith('$2b')) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    } else if (!userData.password) {
+      // Set default password if none provided
+      userData.password = await bcrypt.hash('123', 10);
+    }
+    
     const newUser = await createUser(userData);
     
     // Invalidate cache after creating new user
     invalidateCacheByType('users');
     
     return NextResponse.json(newUser, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating user:', error);
     
     // Tangani error duplikasi
-    if (error.code === '23505') { // PostgreSQL duplicate key error
-      if (error.detail?.includes('nip')) {
-        return NextResponse.json({ error: 'NIP already exists' }, { status: 400 });
-      } else if (error.detail?.includes('email')) {
-        return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+    if (error instanceof Error && 'code' in error) {
+      const dbError = error as { code?: string; detail?: string };
+      if (dbError.code === '23505') { // PostgreSQL duplicate key error
+        if (dbError.detail?.includes('nip')) {
+          return NextResponse.json({ error: 'NIP already exists' }, { status: 400 });
+        } else if (dbError.detail?.includes('email')) {
+          return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+        }
       }
     }
     
@@ -98,21 +110,33 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
     
+    // Encrypt password if it's provided and not already encrypted
+    if (userData.password && !userData.password.startsWith('$2b')) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    } else if (!userData.password) {
+      // If no password is provided, remove it from the update data
+      // This will keep the existing password in the database
+      delete userData.password;
+    }
+    
     const updatedUser = await updateUser(id, userData);
     
     // Invalidate cache after updating user
     invalidateCacheByType('users');
     
     return NextResponse.json(updatedUser);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating user:', error);
     
     // Tangani error duplikasi
-    if (error.code === '23505') { // PostgreSQL duplicate key error
-      if (error.detail?.includes('nip')) {
-        return NextResponse.json({ error: 'NIP already exists' }, { status: 400 });
-      } else if (error.detail?.includes('email')) {
-        return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+    if (error instanceof Error && 'code' in error) {
+      const dbError = error as { code?: string; detail?: string };
+      if (dbError.code === '23505') { // PostgreSQL duplicate key error
+        if (dbError.detail?.includes('nip')) {
+          return NextResponse.json({ error: 'NIP already exists' }, { status: 400 });
+        } else if (dbError.detail?.includes('email')) {
+          return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+        }
       }
     }
     

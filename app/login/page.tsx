@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
-  const { users, setCurrentUser } = useAppContext();
+  const { setCurrentUser } = useAppContext();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -35,68 +35,39 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Find user by NIP
-    const user = users.find(u => u.nip === nip);
-    
-    if (!user) {
-      alert('NIP tidak ditemukan!');
-      return;
-    }
-    
-    // Check password (in real app, this should be properly hashed)
-    if (password !== user.password && password !== '123') {
-      alert('Password salah!');
-      return;
-    }
-    
-    // Update last login in database
+    // Authenticate user against database
     try {
-      const now = new Date().toISOString();
-      const updatedUser = {
-        ...user,
-        lastLogin: now
-      };
-      
-      const response = await fetch('/api/users', {
-        method: 'PUT',
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: user.id,
-          ...updatedUser
+          nip,
+          password
         }),
       });
       
       if (response.ok) {
-        const updatedUserFromApi = await response.json();
-        // Set current user with updated lastLogin
-        setCurrentUser(updatedUserFromApi);
+        const { user } = await response.json();
+        
+        // Set current user
+        setCurrentUser(user);
         
         // Set cookie for authentication
-        const cookieValue = encodeURIComponent(JSON.stringify(updatedUserFromApi));
+        const cookieValue = encodeURIComponent(JSON.stringify(user));
         const maxAge = rememberMe ? 30*24*60*60 : 24*60*60; // 30 days or 1 day
         document.cookie = `currentUser=${cookieValue}; path=/; max-age=${maxAge}; SameSite=Lax`;
         
         // Redirect to dashboard
         router.push('/dashboard');
       } else {
-        console.error('Failed to update user last login');
-        // Still login even if update fails
-        setCurrentUser(user);
-        const cookieValue = encodeURIComponent(JSON.stringify(user));
-        const maxAge = rememberMe ? 30*24*60*60 : 24*60*60;
-        document.cookie = `currentUser=${cookieValue}; path=/; max-age=${maxAge}; SameSite=Lax`;
-        router.push('/dashboard');
+        const errorData = await response.json();
+        alert(errorData.error || 'Login gagal!');
       }
     } catch (error) {
-      console.error('Error updating user last login:', error);
-      // Still login even if update fails
-      setCurrentUser(user);
-      const cookieValue = encodeURIComponent(JSON.stringify(user));
-      const maxAge = rememberMe ? 30*24*60*60 : 24*60*60;
-      document.cookie = `currentUser=${cookieValue}; path=/; max-age=${maxAge}; SameSite=Lax`;
-      router.push('/dashboard');
+      console.error('Error during login:', error);
+      alert('Terjadi kesalahan saat login!');
     }
   };
 

@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
-import { generateLaporanPDF } from '@/lib/pdf-utils';
-import { generateLaporanExcel } from '@/lib/excel-utils';
 import { Chart } from 'chart.js/auto';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import TableSkeleton from '@/app/components/TableSkeleton';
 
 export default function LaporanPage() {
-  const { surat, kategoriData } = useAppContext();
+  const { surat, suratMasuk, kategoriData } = useAppContext();
+  const [suratType, setSuratType] = useState('keluar'); // 'keluar', 'masuk', or 'both'
   const [periode, setPeriode] = useState('bulan-ini');
   const [tanggalDari, setTanggalDari] = useState('');
   const [tanggalSampai, setTanggalSampai] = useState('');
@@ -106,7 +105,8 @@ export default function LaporanPage() {
     
     const creatorCount: any = {};
     data.forEach(suratItem => {
-      const creator = suratItem.pembuat || 'Tidak Diketahui';
+      // Untuk surat masuk, kita bisa menggunakan pengirim sebagai "creator"
+      const creator = suratItem.pembuat || suratItem.pengirim || 'Tidak Diketahui';
       creatorCount[creator] = (creatorCount[creator] || 0) + 1;
     });
     
@@ -122,6 +122,8 @@ export default function LaporanPage() {
     if (!data || data.length === 0) {
       return {
         totalSurat: 0,
+        totalSuratKeluar: 0,
+        totalSuratMasuk: 0,
         rataRata: 0,
         kategoriTop: '-',
         bulanTop: '-'
@@ -130,6 +132,8 @@ export default function LaporanPage() {
     
     // Total surat
     const totalSurat = data.length;
+    const totalSuratKeluar = data.filter(item => item.type === 'keluar' || !item.type).length;
+    const totalSuratMasuk = data.filter(item => item.type === 'masuk').length;
     
     // Rata-rata per bulan
     const months = data.reduce((acc: any, suratItem) => {
@@ -154,10 +158,13 @@ export default function LaporanPage() {
       ? Math.round(totalSurat / Object.keys(months).length) 
       : 0;
     
-    // Kategori terbanyak
+    // Kategori terbanyak (hanya untuk surat keluar)
     const kategoriCount = data.reduce((acc: any, suratItem) => {
-      const kategoriName = kategoriData[suratItem.kategori]?.name || suratItem.kategori || 'Tidak Diketahui';
-      acc[kategoriName] = (acc[kategoriName] || 0) + 1;
+      // Hanya hitung kategori untuk surat keluar
+      if (suratItem.type === 'keluar' || !suratItem.type) {
+        const kategoriName = kategoriData[suratItem.kategori]?.name || suratItem.kategori || 'Tidak Diketahui';
+        acc[kategoriName] = (acc[kategoriName] || 0) + 1;
+      }
       return acc;
     }, {});
     
@@ -172,6 +179,8 @@ export default function LaporanPage() {
     
     return {
       totalSurat,
+      totalSuratKeluar,
+      totalSuratMasuk,
       rataRata,
       kategoriTop,
       bulanTop
@@ -531,25 +540,62 @@ export default function LaporanPage() {
     setLoading(true);
     setChartLoading(true);
     
-    // Filter data berdasarkan periode dan kategori
-    const filteredData = surat.filter(suratItem => {
-      const suratDate = new Date(suratItem.tanggal);
-      const startDate = new Date(tanggalDari);
-      const endDate = new Date(tanggalSampai);
+    let filteredData = [];
+    
+    // Filter data based on surat type
+    if (suratType === 'keluar' || suratType === 'both') {
+      // Filter surat keluar data based on period and category
+      const keluarData = surat.filter(suratItem => {
+        const suratDate = new Date(suratItem.tanggal);
+        const startDate = new Date(tanggalDari);
+        const endDate = new Date(tanggalSampai);
+        
+        // Periksa apakah tanggal valid
+        if (isNaN(suratDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return false;
+        }
+        
+        let match = suratDate >= startDate && suratDate <= endDate;
+        
+        if (kategori && suratItem.kategori !== kategori) {
+          match = false;
+        }
+        
+        // Add type identifier for combined data
+        if (match) {
+          suratItem.type = 'keluar';
+        }
+        
+        return match;
+      });
       
-      // Periksa apakah tanggal valid
-      if (isNaN(suratDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return false;
-      }
+      filteredData = [...filteredData, ...keluarData];
+    }
+    
+    if (suratType === 'masuk' || suratType === 'both') {
+      // Filter surat masuk data based on period
+      const masukData = suratMasuk.filter(suratItem => {
+        const suratDate = new Date(suratItem.tanggal);
+        const startDate = new Date(tanggalDari);
+        const endDate = new Date(tanggalSampai);
+        
+        // Periksa apakah tanggal valid
+        if (isNaN(suratDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return false;
+        }
+        
+        let match = suratDate >= startDate && suratDate <= endDate;
+        
+        // Add type identifier for combined data
+        if (match) {
+          suratItem.type = 'masuk';
+        }
+        
+        return match;
+      });
       
-      let match = suratDate >= startDate && suratDate <= endDate;
-      
-      if (kategori && suratItem.kategori !== kategori) {
-        match = false;
-      }
-      
-      return match;
-    });
+      filteredData = [...filteredData, ...masukData];
+    }
     
     setLaporanData(filteredData);
     
@@ -561,212 +607,7 @@ export default function LaporanPage() {
     }, 300);
   };
 
-  const handleExportPDF = () => {
-    if (laporanData.length === 0) {
-      alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
-      return;
-    }
-    
-    const stats = generateStats(laporanData);
-    
-    generateLaporanPDF(
-      laporanData, 
-      stats, 
-      kategoriData, 
-      tanggalDari, 
-      tanggalSampai, 
-      kategori
-    );
-  };
-
-  const handleExportExcel = () => {
-    if (laporanData.length === 0) {
-      alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
-      return;
-    }
-    
-    const stats = generateStats(laporanData);
-    
-    generateLaporanExcel(
-      laporanData, 
-      stats, 
-      tanggalDari, 
-      tanggalSampai, 
-      kategori
-    );
-  };
-
-  const handlePrint = () => {
-    if (laporanData.length === 0) {
-      alert('Tidak ada data untuk di-print. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
-      return;
-    }
-    
-    // Create a print window with formatted content
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Laporan Surat Keluar</title>
-          <style>
-            body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              margin: 20px;
-              color: #333;
-              background-color: #fff;
-            }
-            .header {
-              text-align: center;
-              border-bottom: 3px solid #3b82f6;
-              padding-bottom: 15px;
-              margin-bottom: 25px;
-            }
-            .title {
-              font-size: 28px;
-              font-weight: 700;
-              color: #1e40af;
-              margin: 0;
-            }
-            .subtitle {
-              font-size: 16px;
-              color: #64748b;
-              margin-top: 5px;
-            }
-            .report-info {
-              background-color: #eff6ff;
-              border-left: 4px solid #3b82f6;
-              padding: 15px;
-              margin-bottom: 25px;
-              border-radius: 0 8px 8px 0;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            }
-            .info-label {
-              font-weight: 600;
-              color: #1e40af;
-              margin-right: 10px;
-              display: inline-block;
-              min-width: 140px;
-            }
-            .info-value {
-              font-weight: 500;
-              color: #334155;
-            }
-            .info-row {
-              margin-bottom: 8px;
-            }
-            .info-row:last-child {
-              margin-bottom: 0;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-              border-radius: 8px;
-              overflow: hidden;
-            }
-            th {
-              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-              color: white;
-              font-weight: 600;
-              text-align: left;
-              padding: 12px 15px;
-            }
-            td {
-              border: 1px solid #e2e8f0;
-              padding: 10px 15px;
-            }
-            tr:nth-child(even) {
-              background-color: #f8fafc;
-            }
-            tr:hover {
-              background-color: #f1f5f9;
-            }
-            .footer {
-              margin-top: 30px;
-              text-align: center;
-              font-size: 12px;
-              color: #94a3b8;
-              padding-top: 15px;
-              border-top: 1px solid #e2e8f0;
-            }
-            @media print {
-              body {
-                margin: 0;
-                padding: 20px;
-              }
-              .header {
-                border-bottom: 2px solid #3b82f6;
-                padding-bottom: 10px;
-              }
-              .title {
-                font-size: 24px;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="title">LAPORAN SURAT KELUAR</div>
-            <div class="subtitle">Sistem Pengelolaan Surat Keluar</div>
-          </div>
-          
-          <div class="report-info">
-            <div class="info-row">
-              <span class="info-label">Periode Laporan:</span>
-              <span class="info-value">${formatDate(tanggalDari)} - ${formatDate(tanggalSampai)}</span>
-            </div>
-            ${kategori ? `
-            <div class="info-row">
-              <span class="info-label">Kategori:</span>
-              <span class="info-value">${kategori} - ${kategoriData[kategori]?.name || ''}</span>
-            </div>
-            ` : ''}
-          </div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Nomor Surat</th>
-                <th>Tanggal</th>
-                <th>Tujuan</th>
-                <th>Perihal</th>
-                <th>Pembuat</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${laporanData.map((item, index) => `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${item.nomor}</td>
-                  <td>${formatDate(item.tanggal)}</td>
-                  <td>${item.tujuan}</td>
-                  <td>${item.perihal}</td>
-                  <td>${item.pembuat}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          
-          <div class="footer">
-            Dicetak pada: ${new Date().toLocaleDateString('id-ID', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </div>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
+  // Removed export functionality as requested
 
   // Get top creators for display
   const topCreators = getTopCreators(laporanData);
@@ -798,7 +639,20 @@ export default function LaporanPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Surat</label>
+              <select 
+                value={suratType}
+                onChange={(e) => setSuratType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="keluar">Surat Keluar</option>
+                <option value="masuk">Surat Masuk</option>
+                <option value="both">Keduanya</option>
+              </select>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Periode</label>
               <select 
@@ -894,11 +748,20 @@ export default function LaporanPage() {
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium mb-2">Rata-rata/Bulan</p>
-                  <p className="text-3xl font-bold">{generateStats(laporanData).rataRata}</p>
+                  <p className="text-green-100 text-sm font-medium mb-2">
+                    {suratType === 'keluar' ? 'Surat Keluar' : 
+                     suratType === 'masuk' ? 'Surat Masuk' : 'Rata-rata/Bulan'}
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {suratType === 'keluar' ? generateStats(laporanData).totalSuratKeluar :
+                     suratType === 'masuk' ? generateStats(laporanData).totalSuratMasuk :
+                     generateStats(laporanData).rataRata}
+                  </p>
                 </div>
                 <div className="bg-white/20 rounded-xl p-3">
-                  <i className="fas fa-chart-line text-2xl"></i>
+                  <i className={`fas ${suratType === 'keluar' ? 'fa-paper-plane' : 
+                                      suratType === 'masuk' ? 'fa-envelope-open-text' : 
+                                      'fa-chart-line'} text-2xl`}></i>
                 </div>
               </div>
             </div>
@@ -973,12 +836,14 @@ export default function LaporanPage() {
           </div>
         ) : laporanData.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Pembuat Surat */}
+            {/* Top Pembuat/Pengirim Surat */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-800">Top Pembuat Surat</h3>
+                <h3 className="text-lg font-bold text-gray-800">
+                  {suratType === 'masuk' ? 'Top Pengirim Surat' : 'Top Pembuat Surat'}
+                </h3>
                 <div className="bg-green-100 p-2 rounded-lg">
-                  <i className="fas fa-users text-green-600"></i>
+                  <i className={`fas ${suratType === 'masuk' ? 'fa-user-friends' : 'fa-users'} text-green-600`}></i>
                 </div>
               </div>
               <div className="space-y-4">
@@ -995,6 +860,11 @@ export default function LaporanPage() {
                     </span>
                   </div>
                 ))}
+                {topCreators.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    Tidak ada data pembuat/pengirim
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1013,32 +883,21 @@ export default function LaporanPage() {
           </div>
         )}
 
-        {/* Export Laporan */}
+        {/* Info Laporan */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Export Laporan</h3>
-              <p className="text-gray-600 text-sm mt-1">Download laporan dalam berbagai format</p>
+              <h3 className="text-lg font-bold text-gray-800">Informasi Laporan</h3>
+              <p className="text-gray-600 text-sm mt-1">
+                {suratType === 'keluar' 
+                  ? 'Laporan Surat Keluar' 
+                  : suratType === 'masuk' 
+                    ? 'Laporan Surat Masuk' 
+                    : 'Gabungan Laporan Surat Keluar & Masuk'}
+              </p>
             </div>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-              <button 
-                onClick={handleExportPDF}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-              >
-                <i className="fas fa-file-pdf mr-2"></i>Export PDF
-              </button>
-              <button 
-                onClick={handleExportExcel}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-              >
-                <i className="fas fa-file-excel mr-2"></i>Export Excel
-              </button>
-              <button 
-                onClick={handlePrint}
-                className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
-              >
-                <i className="fas fa-print mr-2"></i>Print
-              </button>
+            <div className="bg-gray-100 p-3 rounded-full">
+              <i className={`fas ${suratType === 'keluar' ? 'fa-paper-plane' : suratType === 'masuk' ? 'fa-envelope-open-text' : 'fa-exchange-alt'} text-gray-600`}></i>
             </div>
           </div>
         </div>
@@ -1046,7 +905,9 @@ export default function LaporanPage() {
         {/* Tabel Detail */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-800">Detail Surat ({laporanData.length} data)</h3>
+            <h3 className="text-lg font-bold text-gray-800">
+              Detail Surat ({suratType === 'keluar' ? 'Keluar' : suratType === 'masuk' ? 'Masuk' : 'Keluar & Masuk'}) ({laporanData.length} data)
+            </h3>
           </div>
           
           {loading ? (
@@ -1059,20 +920,40 @@ export default function LaporanPage() {
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Surat</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                    <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tujuan</th>
+                    <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {suratType === 'masuk' ? 'Pengirim' : 'Tujuan'}
+                    </th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembuat</th>
+                    {suratType === 'both' && (
+                      <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {laporanData.map((suratItem, index) => (
-                    <tr key={suratItem.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={`${suratItem.type || 'keluar'}-${suratItem.id}-${index}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-medium">{suratItem.nomor}</td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(suratItem.tanggal)}</td>
-                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{suratItem.tujuan}</td>
+                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {suratItem.type === 'masuk' || (suratType === 'masuk' && !suratItem.type) 
+                          ? suratItem.pengirim 
+                          : suratItem.tujuan}
+                      </td>
                       <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-md truncate">{suratItem.perihal}</td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{suratItem.pembuat}</td>
+                      {suratType === 'both' && (
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            suratItem.type === 'masuk' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {suratItem.type === 'masuk' ? 'Masuk' : 'Keluar'}
+                          </span>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
