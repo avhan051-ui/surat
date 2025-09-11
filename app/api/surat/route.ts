@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSurat, createSurat, updateSuratById, deleteSuratById } from '@/lib/db-utils';
+import { getSurat, createSurat, updateSuratById, deleteSuratById } from '@/lib/supabase-utils';
 import { Surat } from '@/app/context/AppContext';
 import cache from '@/lib/cache-utils';
 import { invalidateCacheByType } from '@/lib/cache-management-utils';

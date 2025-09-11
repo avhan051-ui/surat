@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 
@@ -12,45 +12,50 @@ export default function DashboardPage() {
   const [categoryStats, setCategoryStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Simulate data loading optimization with minimal delay
-    const timer = setTimeout(() => {
-      // Initialize dashboard data
-      setTotalSurat(surat.length);
-      
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const suratBulanIniCount = surat.filter(suratItem => {
-        const suratDate = new Date(suratItem.tanggal);
-        return suratDate.getMonth() === currentMonth && suratDate.getFullYear() === currentYear;
-      }).length;
-      
-      setSuratBulanIni(suratBulanIniCount);
-      
-      // Recent activity (last 5)
-      const recentSurat = surat.slice(-5).reverse();
-      setRecentActivity(recentSurat);
-      
-      // Category statistics
-      const stats: any = {};
-      surat.forEach(suratItem => {
-        const kategori = suratItem.kategori;
-        stats[kategori] = (stats[kategori] || 0) + 1;
-      });
-      
-      const categoryStatsData = Object.entries(stats).map(([kategori, count]) => ({
-        kategori,
-        name: kategoriData[kategori as keyof typeof kategoriData]?.name || kategori,
-        count,
-        percentage: Math.round((Number(count) / surat.length) * 100)
-      }));
-      
-      setCategoryStats(categoryStatsData);
-      setLoading(false);
-    }, 50); // Minimal delay for better UX
-
-    return () => clearTimeout(timer);
+  // Memoize expensive calculations
+  const memoizedData = useMemo(() => {
+    const total = surat.length;
+    
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const bulanIniCount = surat.filter(suratItem => {
+      const suratDate = new Date(suratItem.tanggal);
+      return suratDate.getMonth() === currentMonth && suratDate.getFullYear() === currentYear;
+    }).length;
+    
+    // Recent activity (last 5)
+    const recent = surat.slice(-5).reverse();
+    
+    // Category statistics
+    const stats: any = {};
+    surat.forEach(suratItem => {
+      const kategori = suratItem.kategori;
+      stats[kategori] = (stats[kategori] || 0) + 1;
+    });
+    
+    const categoryStatsData = Object.entries(stats).map(([kategori, count]) => ({
+      kategori,
+      name: kategoriData[kategori as keyof typeof kategoriData]?.name || kategori,
+      count,
+      percentage: Math.round((Number(count) / surat.length) * 100)
+    }));
+    
+    return {
+      total,
+      bulanIniCount,
+      recent,
+      categoryStatsData
+    };
   }, [surat, kategoriData]);
+
+  useEffect(() => {
+    // Use memoized data to update state
+    setTotalSurat(memoizedData.total);
+    setSuratBulanIni(memoizedData.bulanIniCount);
+    setRecentActivity(memoizedData.recent);
+    setCategoryStats(memoizedData.categoryStatsData);
+    setLoading(false);
+  }, [memoizedData]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

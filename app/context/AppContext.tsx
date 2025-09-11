@@ -1,7 +1,21 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import pool from '@/lib/db';
+import { 
+  getUsers, 
+  getSurat, 
+  getSuratMasuk, 
+  getKategoriData,
+  createUser,
+  updateUser as updateUserService,
+  deleteUser as deleteUserService,
+  createSurat,
+  updateSuratById,
+  deleteSuratById,
+  createSuratMasuk,
+  updateSuratMasukById,
+  deleteSuratMasukById
+} from '@/lib/supabase-utils';
 
 // Define types
 interface User {
@@ -274,47 +288,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [kategoriData, setKategoriData] = useState<{ [key: string]: Kategori }>(initialKategoriData);
   const [currentUserState, setCurrentUserState] = useState<User | null>(null);
 
-  // Load data from PostgreSQL on initial render
+  // Load data from Supabase on initial render
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch surat data from the API
-        const suratResponse = await fetch('/api/surat');
-        if (suratResponse.ok) {
-          const suratData = await suratResponse.json();
-          setSurat(suratData);
-        } else {
-          console.error('Failed to fetch surat data:', suratResponse.statusText);
-        }
-        
-        // Fetch surat masuk data from the API
-        const suratMasukResponse = await fetch('/api/surat-masuk');
-        if (suratMasukResponse.ok) {
-          const suratMasukData = await suratMasukResponse.json();
-          setSuratMasuk(suratMasukData);
-        } else {
-          console.error('Failed to fetch surat masuk data:', suratMasukResponse.statusText);
-        }
-        
-        // Fetch users data from the API
-        const usersResponse = await fetch('/api/users');
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json();
-          setUsers(usersData);
-        } else {
-          console.error('Failed to fetch users data:', usersResponse.statusText);
-        }
-        
-        // Fetch kategori data from the API
-        const kategoriResponse = await fetch('/api/kategori');
-        if (kategoriResponse.ok) {
-          const kategoriData = await kategoriResponse.json();
-          setKategoriData(kategoriData);
-        } else {
-          console.error('Failed to fetch kategori data:', kategoriResponse.statusText);
-        }
+        // Fetch all data in parallel to improve performance
+        const [suratData, suratMasukData, usersData, kategoriData] = await Promise.all([
+          getSurat(),
+          getSuratMasuk(),
+          getUsers(),
+          getKategoriData()
+        ]);
+
+        setSurat(suratData);
+        setSuratMasuk(suratMasukData);
+        setUsers(usersData);
+        setKategoriData(kategoriData);
       } catch (error) {
-        console.error('Error fetching data from PostgreSQL:', error);
+        console.error('Error fetching data from Supabase:', error);
       }
     };
 
@@ -339,19 +330,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const addUser = (user: User) => {
-    setUsers(prev => [...prev, user]);
-    // In a real implementation, you would also save to PostgreSQL
+    const addUser = async (user: User) => {
+    try {
+      const newUser = await createUser(user);
+      setUsers(prev => [...prev, newUser]);
+    } catch (error) {
+      console.error('Error adding user:', error);
+    }
   };
 
-  const updateUser = (id: number, updatedUser: User) => {
-    setUsers(prev => prev.map(user => user.id === id ? updatedUser : user));
-    // In a real implementation, you would also update in PostgreSQL
+  const updateUser = async (id: number, updatedUser: User) => {
+    try {
+      const newUser = await updateUserService(id, updatedUser);
+      setUsers(prev => prev.map(user => user.id === id ? newUser : user));
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
   };
 
-  const deleteUser = (id: number) => {
-    setUsers(prev => prev.filter(user => user.id !== id));
-    // In a real implementation, you would also delete from PostgreSQL
+  const deleteUser = async (id: number) => {
+    try {
+      await deleteUserService(id);
+      setUsers(prev => prev.filter(user => user.id !== id));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
   };
 
   const addSurat = async (newSurat: Surat) => {
@@ -359,82 +362,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Remove the id from newSurat to let the backend auto-generate it
       const { id, ...suratData } = newSurat;
       
-      const response = await fetch('/api/surat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(suratData),
+      const createdSurat = await createSurat(suratData);
+      setSurat(prev => {
+        const updatedSurat = [...prev, createdSurat];
+        // Update all nomor urut after adding new surat
+        return updateAllNomorUrut(updatedSurat);
       });
-      
-      if (response.ok) {
-        const createdSurat = await response.json();
-        setSurat(prev => {
-          const updatedSurat = [...prev, createdSurat];
-          // Update all nomor urut after adding new surat
-          return updateAllNomorUrut(updatedSurat);
-        });
-      } else {
-        console.error('Failed to create surat:', response.statusText);
-      }
     } catch (error) {
       console.error('Error creating surat:', error);
     }
   };
 
-  // Fungsi untuk memperbarui nomor urut semua surat berdasarkan kategori utama
-  const updateAllNomorUrut = (suratList: Surat[]) => {
-    // Kelompokkan surat berdasarkan kategori utama
-    const kategoriGroups: { [key: string]: Surat[] } = {};
-    suratList.forEach(suratItem => {
-      if (!kategoriGroups[suratItem.kategori]) {
-        kategoriGroups[suratItem.kategori] = [];
-      }
-      kategoriGroups[suratItem.kategori].push(suratItem);
-    });
-
-    // Update nomor urut untuk setiap kategori
-    Object.keys(kategoriGroups).forEach(kategori => {
-      // Urutkan berdasarkan tanggal untuk konsistensi
-      kategoriGroups[kategori].sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
-
-      // Update nomor urut
-      kategoriGroups[kategori].forEach((suratItem, index) => {
-        const tahun = new Date(suratItem.tanggal).getFullYear();
-        const nomorBaru = String(index + 1).padStart(3, '0');
-        suratItem.nomor = `${suratItem.fullKategori}/${nomorBaru}/${tahun}`;
-      });
-    });
-
-    // Flatten the groups back into a single array
-    const updatedSurat: Surat[] = [];
-    Object.values(kategoriGroups).forEach(group => {
-      updatedSurat.push(...group);
-    });
-
-    return updatedSurat;
-  };
-
   const updateSurat = async (id: number, updatedSurat: Surat) => {
     try {
-      const response = await fetch('/api/surat', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id, ...updatedSurat }),
+      const updatedSuratFromApi = await updateSuratById(id, updatedSurat);
+      setSurat(prev => {
+        const updatedList = prev.map(s => s.id === id ? updatedSuratFromApi : s);
+        // Update all nomor urut after updating a surat
+        return updateAllNomorUrut(updatedList);
       });
-      
-      if (response.ok) {
-        const updatedSuratFromApi = await response.json();
-        setSurat(prev => {
-          const updatedList = prev.map(s => s.id === id ? updatedSuratFromApi : s);
-          // Update all nomor urut after updating a surat
-          return updateAllNomorUrut(updatedList);
-        });
-      } else {
-        console.error('Failed to update surat:', response.statusText);
-      }
     } catch (error) {
       console.error('Error updating surat:', error);
     }
@@ -442,19 +388,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteSurat = async (id: number) => {
     try {
-      const response = await fetch(`/api/surat?id=${id}`, {
-        method: 'DELETE',
+      await deleteSuratById(id);
+      setSurat(prev => {
+        const filteredSurat = prev.filter(s => s.id !== id);
+        // Update all nomor urut after deleting a surat
+        return updateAllNomorUrut(filteredSurat);
       });
-      
-      if (response.ok) {
-        setSurat(prev => {
-          const filteredSurat = prev.filter(s => s.id !== id);
-          // Update all nomor urut after deleting a surat
-          return updateAllNomorUrut(filteredSurat);
-        });
-      } else {
-        console.error('Failed to delete surat:', response.statusText);
-      }
     } catch (error) {
       console.error('Error deleting surat:', error);
     }
@@ -462,20 +401,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addSuratMasuk = async (newSuratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>) => {
     try {
-      const response = await fetch('/api/surat-masuk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newSuratMasuk),
-      });
-      
-      if (response.ok) {
-        const createdSuratMasuk = await response.json();
-        setSuratMasuk(prev => [...prev, createdSuratMasuk]);
-      } else {
-        console.error('Failed to create surat masuk:', response.statusText);
-      }
+      const createdSuratMasuk = await createSuratMasuk(newSuratMasuk);
+      setSuratMasuk(prev => [...prev, createdSuratMasuk]);
     } catch (error) {
       console.error('Error creating surat masuk:', error);
     }
@@ -483,20 +410,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateSuratMasuk = async (id: number, updatedSuratMasuk: Omit<SuratMasuk, 'id' | 'createdAt'>) => {
     try {
-      const response = await fetch('/api/surat-masuk', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id, ...updatedSuratMasuk }),
-      });
-      
-      if (response.ok) {
-        const updatedSuratMasukFromApi = await response.json();
-        setSuratMasuk(prev => prev.map(s => s.id === id ? updatedSuratMasukFromApi : s));
-      } else {
-        console.error('Failed to update surat masuk:', response.statusText);
-      }
+      const updatedSuratMasukFromApi = await updateSuratMasukById(id, updatedSuratMasuk);
+      setSuratMasuk(prev => prev.map(s => s.id === id ? updatedSuratMasukFromApi : s));
     } catch (error) {
       console.error('Error updating surat masuk:', error);
     }
@@ -504,15 +419,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteSuratMasuk = async (id: number) => {
     try {
-      const response = await fetch(`/api/surat-masuk?id=${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        setSuratMasuk(prev => prev.filter(s => s.id !== id));
-      } else {
-        console.error('Failed to delete surat masuk:', response.statusText);
-      }
+      await deleteSuratMasukById(id);
+      setSuratMasuk(prev => prev.filter(s => s.id !== id));
     } catch (error) {
       console.error('Error deleting surat masuk:', error);
     }

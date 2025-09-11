@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAppContext } from '@/app/context/AppContext';
+import { generateLaporanPDF } from '@/lib/pdf-utils';
+import { generateLaporanExcel } from '@/lib/excel-utils';
 import { Chart } from 'chart.js/auto';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import TableSkeleton from '@/app/components/TableSkeleton';
 
 export default function LaporanPage() {
-  const { surat, suratMasuk, kategoriData } = useAppContext();
-  const [suratType, setSuratType] = useState('keluar'); // 'keluar', 'masuk', or 'both'
+  const { surat, kategoriData } = useAppContext();
   const [periode, setPeriode] = useState('bulan-ini');
   const [tanggalDari, setTanggalDari] = useState('');
   const [tanggalSampai, setTanggalSampai] = useState('');
@@ -105,8 +106,7 @@ export default function LaporanPage() {
     
     const creatorCount: any = {};
     data.forEach(suratItem => {
-      // Untuk surat masuk, kita bisa menggunakan pengirim sebagai "creator"
-      const creator = suratItem.pembuat || suratItem.pengirim || 'Tidak Diketahui';
+      const creator = suratItem.pembuat || 'Tidak Diketahui';
       creatorCount[creator] = (creatorCount[creator] || 0) + 1;
     });
     
@@ -122,8 +122,6 @@ export default function LaporanPage() {
     if (!data || data.length === 0) {
       return {
         totalSurat: 0,
-        totalSuratKeluar: 0,
-        totalSuratMasuk: 0,
         rataRata: 0,
         kategoriTop: '-',
         bulanTop: '-'
@@ -132,8 +130,6 @@ export default function LaporanPage() {
     
     // Total surat
     const totalSurat = data.length;
-    const totalSuratKeluar = data.filter(item => item.type === 'keluar' || !item.type).length;
-    const totalSuratMasuk = data.filter(item => item.type === 'masuk').length;
     
     // Rata-rata per bulan
     const months = data.reduce((acc: any, suratItem) => {
@@ -158,13 +154,10 @@ export default function LaporanPage() {
       ? Math.round(totalSurat / Object.keys(months).length) 
       : 0;
     
-    // Kategori terbanyak (hanya untuk surat keluar)
+    // Kategori terbanyak
     const kategoriCount = data.reduce((acc: any, suratItem) => {
-      // Hanya hitung kategori untuk surat keluar
-      if (suratItem.type === 'keluar' || !suratItem.type) {
-        const kategoriName = kategoriData[suratItem.kategori]?.name || suratItem.kategori || 'Tidak Diketahui';
-        acc[kategoriName] = (acc[kategoriName] || 0) + 1;
-      }
+      const kategoriName = kategoriData[suratItem.kategori]?.name || suratItem.kategori || 'Tidak Diketahui';
+      acc[kategoriName] = (acc[kategoriName] || 0) + 1;
       return acc;
     }, {});
     
@@ -179,8 +172,6 @@ export default function LaporanPage() {
     
     return {
       totalSurat,
-      totalSuratKeluar,
-      totalSuratMasuk,
       rataRata,
       kategoriTop,
       bulanTop
@@ -203,26 +194,15 @@ export default function LaporanPage() {
         if (isNaN(date.getTime())) {
           return;
         }
-        // Format bulan sebagai "MM-YY" untuk sorting yang lebih mudah
-        const monthKey = date.toLocaleDateString('id-ID', { month: '2-digit', year: '2-digit' });
-        monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+        const month = date.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+        monthlyData[month] = (monthlyData[month] || 0) + 1;
       } catch (error) {
         console.error('Error processing date:', suratItem.tanggal, error);
       }
     });
     
-    // Urutkan labels berdasarkan tanggal
-    const sortedLabels = Object.keys(monthlyData).sort((a, b) => {
-      // Konversi label bulan ke objek Date untuk sorting
-      const [monthA, yearA] = a.split('-');
-      const [monthB, yearB] = b.split('-');
-      const dateA = new Date(parseInt(`20${yearA}`), parseInt(monthA) - 1);
-      const dateB = new Date(parseInt(`20${yearB}`), parseInt(monthB) - 1);
-      return dateA.getTime() - dateB.getTime();
-    });
-    
-    const labels = sortedLabels;
-    const values = sortedLabels.map(label => Number(monthlyData[label])) as number[];
+    const labels = Object.keys(monthlyData).sort();
+    const values = labels.map(label => Number(monthlyData[label])) as number[];
     
     return { labels, values };
   };
@@ -263,9 +243,8 @@ export default function LaporanPage() {
         if (isNaN(date.getTime())) {
           return;
         }
-        // Format hari sebagai "DD/MM" untuk label
-        const dayKey = date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' });
-        dailyData[dayKey] = (dailyData[dayKey] || 0) + 1;
+        const day = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        dailyData[day] = (dailyData[day] || 0) + 1;
       } catch (error) {
         console.error('Error processing date:', suratItem.tanggal, error);
       }
@@ -275,12 +254,7 @@ export default function LaporanPage() {
     const sortedEntries = Object.entries(dailyData).sort((a, b) => {
       const [dayA] = a;
       const [dayB] = b;
-      // Konversi label hari ke objek Date untuk sorting
-      const [dayNumA, monthA] = dayA.split('/');
-      const [dayNumB, monthB] = dayB.split('/');
-      const dateA = new Date(new Date().getFullYear(), parseInt(monthA) - 1, parseInt(dayNumA));
-      const dateB = new Date(new Date().getFullYear(), parseInt(monthB) - 1, parseInt(dayNumB));
-      return dateA.getTime() - dateB.getTime();
+      return dayA.localeCompare(dayB);
     });
     
     const labels = sortedEntries.map(([day]) => day);
@@ -289,208 +263,213 @@ export default function LaporanPage() {
     return { labels, values };
   };
 
-  // Fungsi untuk membuat atau memperbarui chart
-  const createOrUpdateChart = (canvasRef: HTMLCanvasElement | null, chartRef: React.MutableRefObject<Chart | null>, type: string, data: any, options: any) => {
-    if (!canvasRef) return;
-    
-    const ctx = canvasRef.getContext('2d');
-    if (!ctx) return;
-    
-    // Hancurkan chart yang ada jika ada
-    if (chartRef.current) {
-      chartRef.current.destroy();
-    }
-    
-    // Buat chart baru
-    chartRef.current = new Chart(ctx, {
-      type,
-      data,
-      options
-    });
-  };
-
   // Fungsi untuk membuat trend chart
   const createTrendChart = (labels: string[], values: number[]) => {
-    createOrUpdateChart(
-      trendCanvasRef.current,
-      trendChartRef,
-      'line',
-      {
-        labels: labels,
-        datasets: [{
-          label: 'Jumlah Surat',
-          data: values,
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          borderWidth: 3,
-          pointBackgroundColor: '#3b82f6',
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
+    // Hancurkan chart yang ada jika ada
+    if (trendChartRef.current) {
+      trendChartRef.current.destroy();
+    }
+    
+    // Buat chart baru jika canvas tersedia
+    if (trendCanvasRef.current) {
+      const ctx = trendCanvasRef.current.getContext('2d');
+      if (ctx) {
+        trendChartRef.current = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Jumlah Surat',
+              data: values,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderWidth: 3,
+              pointBackgroundColor: '#3b82f6',
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              fill: true,
+              tension: 0.3
+            }]
           },
-          tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            titleFont: {
-              size: 14,
-              weight: 'bold'
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: {
+                  size: 14,
+                  weight: 'bold'
+                },
+                bodyFont: {
+                  size: 13
+                },
+                padding: 12,
+                displayColors: false
+              }
             },
-            bodyFont: {
-              size: 13
-            },
-            padding: 12,
-            displayColors: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)'
-            },
-            ticks: {
-              stepSize: 1,
-              precision: 0
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                },
+                ticks: {
+                  stepSize: 1
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
             }
-          },
-          x: {
-            grid: {
-              display: false
-            }
           }
-        }
+        });
       }
-    );
+    }
   };
 
   // Fungsi untuk membuat kategori chart
   const createKategoriChart = (labels: string[], values: number[]) => {
-    // Generate colors dynamically
-    const backgroundColors = [
-      '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', 
-      '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899'
-    ];
-    
-    // Extend colors if we have more categories than colors
-    const extendedColors = [...backgroundColors];
-    while (extendedColors.length < labels.length) {
-      extendedColors.push(...backgroundColors);
+    // Hancurkan chart yang ada jika ada
+    if (kategoriChartRef.current) {
+      kategoriChartRef.current.destroy();
     }
+    
+    // Buat chart baru jika canvas tersedia
+    if (kategoriCanvasRef.current) {
+      const ctx = kategoriCanvasRef.current.getContext('2d');
+      if (ctx) {
+        // Generate colors dynamically
+        const backgroundColors = [
+          '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', 
+          '#ef4444', '#06b6d4', '#8b5cf6', '#ec4899'
+        ];
+        
+        // Extend colors if we have more categories than colors
+        const extendedColors = [...backgroundColors];
+        while (extendedColors.length < labels.length) {
+          extendedColors.push(...backgroundColors);
+        }
 
-    createOrUpdateChart(
-      kategoriCanvasRef.current,
-      kategoriChartRef,
-      'doughnut',
-      {
-        labels: labels,
-        datasets: [{
-          data: values,
-          backgroundColor: extendedColors.slice(0, labels.length),
-          borderWidth: 0,
-          hoverOffset: 15
-        }]
-      },
-      {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 20,
-              usePointStyle: true,
-              pointStyle: 'circle'
-            }
+        kategoriChartRef.current = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: extendedColors.slice(0, labels.length),
+              borderWidth: 0,
+              hoverOffset: 15
+            }]
           },
-          tooltip: {
-            callbacks: {
-              label: function(context: any) {
-                const total = context.dataset.data.reduce((acc: number, val: number) => acc + val, 0);
-                const percentage = Math.round((context.raw / total) * 100);
-                return `${context.label}: ${context.raw} (${percentage}%)`;
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20,
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context: any) {
+                    const total = context.dataset.data.reduce((acc: number, val: number) => acc + val, 0);
+                    const percentage = Math.round((context.raw / total) * 100);
+                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                  }
+                },
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: {
+                  size: 14,
+                  weight: 'bold'
+                },
+                bodyFont: {
+                  size: 13
+                },
+                padding: 12
               }
             },
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            titleFont: {
-              size: 14,
-              weight: 'bold'
-            },
-            bodyFont: {
-              size: 13
-            },
-            padding: 12
+            cutout: '65%'
           }
-        },
-        cutout: '65%'
+        });
       }
-    );
+    }
   };
 
   // Fungsi untuk membuat harian chart
   const createHarianChart = (labels: string[], values: number[]) => {
-    createOrUpdateChart(
-      harianCanvasRef.current,
-      harianChartRef,
-      'bar',
-      {
-        labels: labels,
-        datasets: [{
-          label: 'Jumlah Surat',
-          data: values,
-          backgroundColor: '#10b981',
-          borderColor: '#059669',
-          borderWidth: 1,
-          borderRadius: 4,
-          barPercentage: 0.6
-        }]
-      },
-      {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
+    // Hancurkan chart yang ada jika ada
+    if (harianChartRef.current) {
+      harianChartRef.current.destroy();
+    }
+    
+    // Buat chart baru jika canvas tersedia
+    if (harianCanvasRef.current) {
+      const ctx = harianCanvasRef.current.getContext('2d');
+      if (ctx) {
+        harianChartRef.current = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Jumlah Surat',
+              data: values,
+              backgroundColor: '#10b981',
+              borderColor: '#059669',
+              borderWidth: 1,
+              borderRadius: 4,
+              barPercentage: 0.6
+            }]
           },
-          tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            titleFont: {
-              size: 14,
-              weight: 'bold'
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: {
+                  size: 14,
+                  weight: 'bold'
+                },
+                bodyFont: {
+                  size: 13
+                },
+                padding: 12,
+                displayColors: false
+              }
             },
-            bodyFont: {
-              size: 13
-            },
-            padding: 12,
-            displayColors: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)'
-            },
-            ticks: {
-              stepSize: 1,
-              precision: 0
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                },
+                ticks: {
+                  stepSize: 1
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
             }
-          },
-          x: {
-            grid: {
-              display: false
-            }
           }
-        }
+        });
       }
-    );
+    }
   };
 
   // Fungsi untuk menggambar chart
@@ -498,32 +477,20 @@ export default function LaporanPage() {
     try {
       // Buat trend chart
       const { labels: trendLabels, values: trendValues } = generateTrendData(data);
-      console.log('Trend data:', { trendLabels, trendValues }); // Untuk debugging
       if (trendLabels.length > 0 && trendValues.length > 0) {
-        // Tambahkan sedikit delay untuk memastikan canvas siap
-        setTimeout(() => {
-          createTrendChart(trendLabels, trendValues);
-        }, 100);
+        createTrendChart(trendLabels, trendValues);
       }
       
       // Buat kategori chart
       const { labels: kategoriLabels, values: kategoriValues } = generateKategoriData(data);
-      console.log('Kategori data:', { kategoriLabels, kategoriValues }); // Untuk debugging
       if (kategoriLabels.length > 0 && kategoriValues.length > 0) {
-        // Tambahkan sedikit delay untuk memastikan canvas siap
-        setTimeout(() => {
-          createKategoriChart(kategoriLabels, kategoriValues);
-        }, 100);
+        createKategoriChart(kategoriLabels, kategoriValues);
       }
       
       // Buat harian chart
       const { labels: harianLabels, values: harianValues } = generateHarianData(data);
-      console.log('Harian data:', { harianLabels, harianValues }); // Untuk debugging
       if (harianLabels.length > 0 && harianValues.length > 0) {
-        // Tambahkan sedikit delay untuk memastikan canvas siap
-        setTimeout(() => {
-          createHarianChart(harianLabels, harianValues);
-        }, 100);
+        createHarianChart(harianLabels, harianValues);
       }
     } catch (error) {
       console.error('Error drawing charts:', error);
@@ -540,62 +507,25 @@ export default function LaporanPage() {
     setLoading(true);
     setChartLoading(true);
     
-    let filteredData = [];
-    
-    // Filter data based on surat type
-    if (suratType === 'keluar' || suratType === 'both') {
-      // Filter surat keluar data based on period and category
-      const keluarData = surat.filter(suratItem => {
-        const suratDate = new Date(suratItem.tanggal);
-        const startDate = new Date(tanggalDari);
-        const endDate = new Date(tanggalSampai);
-        
-        // Periksa apakah tanggal valid
-        if (isNaN(suratDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          return false;
-        }
-        
-        let match = suratDate >= startDate && suratDate <= endDate;
-        
-        if (kategori && suratItem.kategori !== kategori) {
-          match = false;
-        }
-        
-        // Add type identifier for combined data
-        if (match) {
-          suratItem.type = 'keluar';
-        }
-        
-        return match;
-      });
+    // Filter data berdasarkan periode dan kategori
+    const filteredData = surat.filter(suratItem => {
+      const suratDate = new Date(suratItem.tanggal);
+      const startDate = new Date(tanggalDari);
+      const endDate = new Date(tanggalSampai);
       
-      filteredData = [...filteredData, ...keluarData];
-    }
-    
-    if (suratType === 'masuk' || suratType === 'both') {
-      // Filter surat masuk data based on period
-      const masukData = suratMasuk.filter(suratItem => {
-        const suratDate = new Date(suratItem.tanggal);
-        const startDate = new Date(tanggalDari);
-        const endDate = new Date(tanggalSampai);
-        
-        // Periksa apakah tanggal valid
-        if (isNaN(suratDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          return false;
-        }
-        
-        let match = suratDate >= startDate && suratDate <= endDate;
-        
-        // Add type identifier for combined data
-        if (match) {
-          suratItem.type = 'masuk';
-        }
-        
-        return match;
-      });
+      // Periksa apakah tanggal valid
+      if (isNaN(suratDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return false;
+      }
       
-      filteredData = [...filteredData, ...masukData];
-    }
+      let match = suratDate >= startDate && suratDate <= endDate;
+      
+      if (kategori && suratItem.kategori !== kategori) {
+        match = false;
+      }
+      
+      return match;
+    });
     
     setLaporanData(filteredData);
     
@@ -607,7 +537,212 @@ export default function LaporanPage() {
     }, 300);
   };
 
-  // Removed export functionality as requested
+  const handleExportPDF = () => {
+    if (laporanData.length === 0) {
+      alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
+      return;
+    }
+    
+    const stats = generateStats(laporanData);
+    
+    generateLaporanPDF(
+      laporanData, 
+      stats, 
+      kategoriData, 
+      tanggalDari, 
+      tanggalSampai, 
+      kategori
+    );
+  };
+
+  const handleExportExcel = () => {
+    if (laporanData.length === 0) {
+      alert('Tidak ada data untuk di-export. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
+      return;
+    }
+    
+    const stats = generateStats(laporanData);
+    
+    generateLaporanExcel(
+      laporanData, 
+      stats, 
+      tanggalDari, 
+      tanggalSampai, 
+      kategori
+    );
+  };
+
+  const handlePrint = () => {
+    if (laporanData.length === 0) {
+      alert('Tidak ada data untuk di-print. Silakan pilih periode dan klik tombol "Generate" terlebih dahulu!');
+      return;
+    }
+    
+    // Create a print window with formatted content
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Laporan Surat Keluar</title>
+          <style>
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 20px;
+              color: #333;
+              background-color: #fff;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #3b82f6;
+              padding-bottom: 15px;
+              margin-bottom: 25px;
+            }
+            .title {
+              font-size: 28px;
+              font-weight: 700;
+              color: #1e40af;
+              margin: 0;
+            }
+            .subtitle {
+              font-size: 16px;
+              color: #64748b;
+              margin-top: 5px;
+            }
+            .report-info {
+              background-color: #eff6ff;
+              border-left: 4px solid #3b82f6;
+              padding: 15px;
+              margin-bottom: 25px;
+              border-radius: 0 8px 8px 0;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+            .info-label {
+              font-weight: 600;
+              color: #1e40af;
+              margin-right: 10px;
+              display: inline-block;
+              min-width: 140px;
+            }
+            .info-value {
+              font-weight: 500;
+              color: #334155;
+            }
+            .info-row {
+              margin-bottom: 8px;
+            }
+            .info-row:last-child {
+              margin-bottom: 0;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              border-radius: 8px;
+              overflow: hidden;
+            }
+            th {
+              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+              color: white;
+              font-weight: 600;
+              text-align: left;
+              padding: 12px 15px;
+            }
+            td {
+              border: 1px solid #e2e8f0;
+              padding: 10px 15px;
+            }
+            tr:nth-child(even) {
+              background-color: #f8fafc;
+            }
+            tr:hover {
+              background-color: #f1f5f9;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 12px;
+              color: #94a3b8;
+              padding-top: 15px;
+              border-top: 1px solid #e2e8f0;
+            }
+            @media print {
+              body {
+                margin: 0;
+                padding: 20px;
+              }
+              .header {
+                border-bottom: 2px solid #3b82f6;
+                padding-bottom: 10px;
+              }
+              .title {
+                font-size: 24px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">LAPORAN SURAT KELUAR</div>
+            <div class="subtitle">Sistem Pengelolaan Surat Keluar</div>
+          </div>
+          
+          <div class="report-info">
+            <div class="info-row">
+              <span class="info-label">Periode Laporan:</span>
+              <span class="info-value">${formatDate(tanggalDari)} - ${formatDate(tanggalSampai)}</span>
+            </div>
+            ${kategori ? `
+            <div class="info-row">
+              <span class="info-label">Kategori:</span>
+              <span class="info-value">${kategori} - ${kategoriData[kategori]?.name || ''}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nomor Surat</th>
+                <th>Tanggal</th>
+                <th>Tujuan</th>
+                <th>Perihal</th>
+                <th>Pembuat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${laporanData.map((item, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.nomor}</td>
+                  <td>${formatDate(item.tanggal)}</td>
+                  <td>${item.tujuan}</td>
+                  <td>${item.perihal}</td>
+                  <td>${item.pembuat}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="footer">
+            Dicetak pada: ${new Date().toLocaleDateString('id-ID', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
 
   // Get top creators for display
   const topCreators = getTopCreators(laporanData);
@@ -618,7 +753,7 @@ export default function LaporanPage() {
       // Gambar chart dengan delay kecil untuk memastikan DOM siap
       const timer = setTimeout(() => {
         drawCharts(laporanData);
-      }, 200);
+      }, 150);
       
       return () => clearTimeout(timer);
     }
@@ -639,20 +774,7 @@ export default function LaporanPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Surat</label>
-              <select 
-                value={suratType}
-                onChange={(e) => setSuratType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="keluar">Surat Keluar</option>
-                <option value="masuk">Surat Masuk</option>
-                <option value="both">Keduanya</option>
-              </select>
-            </div>
-            
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Periode</label>
               <select 
@@ -748,20 +870,11 @@ export default function LaporanPage() {
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium mb-2">
-                    {suratType === 'keluar' ? 'Surat Keluar' : 
-                     suratType === 'masuk' ? 'Surat Masuk' : 'Rata-rata/Bulan'}
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {suratType === 'keluar' ? generateStats(laporanData).totalSuratKeluar :
-                     suratType === 'masuk' ? generateStats(laporanData).totalSuratMasuk :
-                     generateStats(laporanData).rataRata}
-                  </p>
+                  <p className="text-green-100 text-sm font-medium mb-2">Rata-rata/Bulan</p>
+                  <p className="text-3xl font-bold">{generateStats(laporanData).rataRata}</p>
                 </div>
                 <div className="bg-white/20 rounded-xl p-3">
-                  <i className={`fas ${suratType === 'keluar' ? 'fa-paper-plane' : 
-                                      suratType === 'masuk' ? 'fa-envelope-open-text' : 
-                                      'fa-chart-line'} text-2xl`}></i>
+                  <i className="fas fa-chart-line text-2xl"></i>
                 </div>
               </div>
             </div>
@@ -836,14 +949,12 @@ export default function LaporanPage() {
           </div>
         ) : laporanData.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Pembuat/Pengirim Surat */}
+            {/* Top Pembuat Surat */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-800">
-                  {suratType === 'masuk' ? 'Top Pengirim Surat' : 'Top Pembuat Surat'}
-                </h3>
+                <h3 className="text-lg font-bold text-gray-800">Top Pembuat Surat</h3>
                 <div className="bg-green-100 p-2 rounded-lg">
-                  <i className={`fas ${suratType === 'masuk' ? 'fa-user-friends' : 'fa-users'} text-green-600`}></i>
+                  <i className="fas fa-users text-green-600"></i>
                 </div>
               </div>
               <div className="space-y-4">
@@ -860,11 +971,6 @@ export default function LaporanPage() {
                     </span>
                   </div>
                 ))}
-                {topCreators.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    Tidak ada data pembuat/pengirim
-                  </div>
-                )}
               </div>
             </div>
 
@@ -883,21 +989,32 @@ export default function LaporanPage() {
           </div>
         )}
 
-        {/* Info Laporan */}
+        {/* Export Laporan */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Informasi Laporan</h3>
-              <p className="text-gray-600 text-sm mt-1">
-                {suratType === 'keluar' 
-                  ? 'Laporan Surat Keluar' 
-                  : suratType === 'masuk' 
-                    ? 'Laporan Surat Masuk' 
-                    : 'Gabungan Laporan Surat Keluar & Masuk'}
-              </p>
+              <h3 className="text-lg font-bold text-gray-800">Export Laporan</h3>
+              <p className="text-gray-600 text-sm mt-1">Download laporan dalam berbagai format</p>
             </div>
-            <div className="bg-gray-100 p-3 rounded-full">
-              <i className={`fas ${suratType === 'keluar' ? 'fa-paper-plane' : suratType === 'masuk' ? 'fa-envelope-open-text' : 'fa-exchange-alt'} text-gray-600`}></i>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+              <button 
+                onClick={handleExportPDF}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+              >
+                <i className="fas fa-file-pdf mr-2"></i>Export PDF
+              </button>
+              <button 
+                onClick={handleExportExcel}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+              >
+                <i className="fas fa-file-excel mr-2"></i>Export Excel
+              </button>
+              <button 
+                onClick={handlePrint}
+                className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-all shadow-md"
+              >
+                <i className="fas fa-print mr-2"></i>Print
+              </button>
             </div>
           </div>
         </div>
@@ -905,9 +1022,7 @@ export default function LaporanPage() {
         {/* Tabel Detail */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-800">
-              Detail Surat ({suratType === 'keluar' ? 'Keluar' : suratType === 'masuk' ? 'Masuk' : 'Keluar & Masuk'}) ({laporanData.length} data)
-            </h3>
+            <h3 className="text-lg font-bold text-gray-800">Detail Surat ({laporanData.length} data)</h3>
           </div>
           
           {loading ? (
@@ -920,40 +1035,20 @@ export default function LaporanPage() {
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nomor Surat</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                    <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {suratType === 'masuk' ? 'Pengirim' : 'Tujuan'}
-                    </th>
+                    <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tujuan</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
                     <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembuat</th>
-                    {suratType === 'both' && (
-                      <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis</th>
-                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {laporanData.map((suratItem, index) => (
-                    <tr key={`${suratItem.type || 'keluar'}-${suratItem.id}-${index}`} className="hover:bg-gray-50 transition-colors">
+                    <tr key={suratItem.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-mono text-blue-600 font-medium">{suratItem.nomor}</td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(suratItem.tanggal)}</td>
-                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                        {suratItem.type === 'masuk' || (suratType === 'masuk' && !suratItem.type) 
-                          ? suratItem.pengirim 
-                          : suratItem.tujuan}
-                      </td>
+                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{suratItem.tujuan}</td>
                       <td className="px-4 lg:px-6 py-4 text-sm text-gray-900 max-w-xs lg:max-w-md truncate">{suratItem.perihal}</td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900">{suratItem.pembuat}</td>
-                      {suratType === 'both' && (
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            suratItem.type === 'masuk' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {suratItem.type === 'masuk' ? 'Masuk' : 'Keluar'}
-                          </span>
-                        </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>

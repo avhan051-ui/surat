@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getKategoriData } from '@/lib/db-utils';
+import { getKategoriData } from '@/lib/supabase-utils';
 import cache from '@/lib/cache-utils';
 import { invalidateCacheByType } from '@/lib/cache-management-utils';
 

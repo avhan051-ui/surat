@@ -10,9 +10,12 @@
     "db:setup": "npx tsx scripts/setup-db.ts",
     "db:init": "npx tsx scripts/init-db.ts",
     "db:seed": "npx tsx scripts/seed-db.ts",
-    "db:fix-sequence": "node scripts/fix-surat-sequence.js"
+    "db:fix-sequence": "node scripts/fix-surat-sequence.js",
+    "db:migrate": "node scripts/migrate-data.js",
+    "db:create-tables": "node scripts/create-supabase-tables.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "@types/bcrypt": "^6.0.0",
     "@types/pg": "^8.15.5",
     "@types/uuid": "^10.0.0",

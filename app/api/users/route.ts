@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUsers, createUser, updateUser, deleteUser } from '@/lib/db-utils';
+import { getUsers, createUser, updateUser, deleteUser } from '@/lib/supabase-utils';
 import { User } from '@/app/context/AppContext';
 import cache from '@/lib/cache-utils';
 import { invalidateCacheByType } from '@/lib/cache-management-utils';

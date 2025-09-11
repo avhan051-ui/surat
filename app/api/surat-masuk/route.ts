@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSuratMasuk, createSuratMasuk, updateSuratMasukById, deleteSuratMasukById } from '@/lib/db-utils';
+import { getSuratMasuk, createSuratMasuk, updateSuratMasukById, deleteSuratMasukById } from '@/lib/supabase-utils';
 import { SuratMasuk } from '@/app/context/AppContext';
 import cache from '@/lib/cache-utils';
 import { invalidateCacheByType } from '@/lib/cache-management-utils';
